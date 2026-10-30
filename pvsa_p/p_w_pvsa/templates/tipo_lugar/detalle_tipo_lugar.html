@@ -1,4 +1,6 @@
+
 {% extends "base.html" %}
+{% load pvsa_roles %}
 
 {% block title %}{{ tipo.tipo_de_lugar }} · PVSA{% endblock %}
 
@@ -38,6 +40,7 @@
         Editar
       </a>
 
+      {% if user|es_administrador_pvsa %}
       <a
         href="{% url 'borrar_tipo_lugar' tipo_lugar_id=tipo.id %}"
         class="btn btn-outline-danger"
@@ -45,6 +48,7 @@
         <i class="bi bi-trash3 me-1"></i>
         Borrar
       </a>
+      {% endif %}
     </div>
   </div>
 
@@ -61,7 +65,6 @@
 
             <div>
               <h2 class="h5 fw-bold mb-1">Lugares que usan este tipo</h2>
-
               <div class="small text-muted">
                 {{ lugares|length }}
                 lugar{% if lugares|length != 1 %}es{% endif %}
@@ -72,14 +75,13 @@
         </div>
 
         <div class="card-body p-3 p-md-4">
-          {% if lugares %}
 
+          {% if lugares %}
             {% if lugares|length > 6 %}
               <div class="input-group mb-4">
                 <span class="input-group-text bg-white border-end-0">
                   <i class="bi bi-search text-muted"></i>
                 </span>
-
                 <input
                   type="search"
                   id="buscarLugarTipo"
@@ -106,7 +108,6 @@
                       <div class="fw-semibold text-break">
                         {{ lugar.nombre_del_lugar }}
                       </div>
-
                       <div class="small text-muted">
                         {{ lugar.piso.ubicacion.ubicacion }}
                         · Piso {{ lugar.piso.piso }}
@@ -114,7 +115,6 @@
                       </div>
                     </div>
                   </div>
-
                   <i class="bi bi-chevron-right text-muted"></i>
                 </a>
               {% endfor %}
@@ -134,8 +134,8 @@
               </div>
             </div>
           {% endif %}
-        </div>
 
+        </div>
       </div>
     </div>
 
@@ -150,7 +150,6 @@
 
             <div>
               <h2 class="h5 fw-bold mb-1">Objetos habituales</h2>
-
               <div class="small text-muted">
                 Objetos que normalmente deberían existir en este tipo de lugar.
               </div>
@@ -172,7 +171,6 @@
                       <div class="fw-semibold text-break">
                         {{ relacion.tipo_objeto.objeto.nombre_del_objeto }}
                       </div>
-
                       <div class="small text-muted">
                         {{ relacion.tipo_objeto.objeto.objeto_categoria.nombre_de_categoria }}
                         {% if relacion.tipo_objeto.marca %}
@@ -209,9 +207,9 @@
             Configurar objetos habituales
           </button>
         </div>
-
       </div>
     </div>
+
   </div>
 
   <div class="collapse mt-4" id="configurarTipicos">
@@ -236,7 +234,6 @@
         {% csrf_token %}
 
         <div class="card-body p-3 p-md-4">
-
           <div class="input-group mb-3">
             <span class="input-group-text bg-white border-end-0">
               <i class="bi bi-search text-muted"></i>
@@ -274,11 +271,9 @@
                     <span class="d-block fw-semibold text-break">
                       {{ t.objeto.nombre_del_objeto }}
                     </span>
-
                     <span class="d-block small text-muted">
                       {{ t.objeto.objeto_categoria.nombre_de_categoria }}
                     </span>
-
                     <span class="d-block small text-muted">
                       {{ t.marca|default:"Sin marca" }}
                       ·
@@ -297,7 +292,6 @@
               Prueba buscando por otro nombre, categoría, marca o material.
             </div>
           </div>
-
         </div>
 
         <div class="card-footer bg-white border-top p-3 p-md-4">
@@ -317,8 +311,8 @@
             </button>
           </div>
         </div>
-
       </form>
+
     </div>
   </div>
 
@@ -340,6 +334,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+
   function normalizar(texto) {
     return String(texto || "")
       .toLowerCase()

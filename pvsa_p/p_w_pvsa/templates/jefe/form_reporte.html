@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Reportar desperfecto · PVSA{% endblock %}
+{% block content %}
+<div class="py-2 py-lg-3" style="max-width:860px;margin:auto;">
+  <div class="mb-4">
+    <a href="{% url 'detalle_lugar_jefe' lugar_id=lugar.id %}" class="btn btn-outline-secondary btn-sm mb-3">
+      <i class="bi bi-arrow-left me-1"></i>Volver al inventario
+    </a>
+    <div class="small text-muted fw-semibold mb-1">Jefe de departamento · Reporte interno</div>
+    <h1 class="h3 fw-bold mb-1">Reportar desperfecto</h1>
+    <p class="text-muted mb-0">
+      <strong>{{ lugar.nombre_del_lugar }}</strong> ·
+      {{ lugar.piso.ubicacion.ubicacion }} · Piso {{ lugar.piso.piso }}
+    </p>
+  </div>
+
+  <div class="alert alert-light border rounded-4 mb-4">
+    Tu reporte quedará asociado a tu usuario y aparecerá en la gestión de incidencias de PVSA.
+    {% if lugar.es_area_comun %}
+      Esta área común es de consulta: enviar un reporte no modifica su inventario.
+    {% endif %}
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div class="card-body p-3 p-md-4">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.elemento_opcion.id_for_label }}">
+            Elemento afectado <span class="text-danger">*</span>
+          </label>
+          {{ form.elemento_opcion }}
+          {% if form.elemento_opcion.errors %}<div class="text-danger small mt-1">{{ form.elemento_opcion.errors|striptags }}</div>{% endif %}
+        </div>
+        <div id="campoOtroElemento" class="mb-3" hidden>
+          <label class="form-label fw-semibold" for="{{ form.otro_elemento.id_for_label }}">¿Qué elemento es?</label>
+          {{ form.otro_elemento }}
+          {% if form.otro_elemento.errors %}<div class="text-danger small mt-1">{{ form.otro_elemento.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.tipo_problema.id_for_label }}">
+            Tipo de problema <span class="text-danger">*</span>
+          </label>
+          {{ form.tipo_problema }}
+          {% if form.tipo_problema.errors %}<div class="text-danger small mt-1">{{ form.tipo_problema.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.descripcion.id_for_label }}">Descripción (opcional)</label>
+          {{ form.descripcion }}
+          {% if form.descripcion.errors %}<div class="text-danger small mt-1">{{ form.descripcion.errors|striptags }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label fw-semibold" for="{{ form.foto.id_for_label }}">Fotografía (opcional)</label>
+          {{ form.foto }}
+          <div class="form-text">JPG, PNG o WebP; hasta 5 MB y 20 megapíxeles. La foto no es pública.</div>
+          {% if form.foto.errors %}<div class="text-danger small mt-1">{{ form.foto.errors|striptags }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="card-footer bg-white p-3 p-md-4 d-flex flex-wrap gap-2 justify-content-end">
+        <a href="{% url 'detalle_lugar_jefe' lugar_id=lugar.id %}" class="btn btn-outline-secondary">Cancelar</a>
+        <button class="btn pvsa-btn" type="submit">
+          <i class="bi bi-send me-1"></i>Enviar reporte
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const seleccion = document.getElementById("id_elemento_opcion");
+  const campo = document.getElementById("campoOtroElemento");
+  if (!seleccion || !campo) return;
+  function actualizar() {
+    campo.hidden = seleccion.value !== "otro";
+  }
+  seleccion.addEventListener("change", actualizar);
+  actualizar();
+});
+</script>
+{% endblock %}

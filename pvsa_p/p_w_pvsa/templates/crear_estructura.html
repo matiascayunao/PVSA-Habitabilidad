@@ -3,960 +3,1656 @@
 {% block title %}Registro completo · PVSA{% endblock %}
 
 {% block content %}
+
 <div class="py-2 py-lg-3">
 
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+
     <div>
+
       <div class="d-inline-flex align-items-center gap-2 pvsa-section-badge mb-2">
+
         <i class="bi bi-ui-checks-grid"></i>
+
         Registro completo
+
       </div>
 
       <h1 class="h3 fw-bold mb-1">Registro completo</h1>
+
       <div class="text-muted">
+
         Registra un lugar completo y sus objetos en una sola operación.
+
       </div>
+
     </div>
 
     <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+
       <i class="bi bi-arrow-left me-1"></i>
+
       Volver al inicio
+
     </a>
+
   </div>
 
   <div class="alert pvsa-info-alert border-0 shadow-sm mb-4">
+
     <div class="d-flex gap-3 align-items-start">
+
       <i class="bi bi-info-circle-fill fs-5 pvsa-text"></i>
+
       <div>
+
         <div class="fw-semibold">Cómo completar este formulario</div>
+
         <div class="small text-muted">
+
           En cada nivel puedes elegir un registro existente o escribir uno nuevo.
+
           Si seleccionas un tipo de lugar que tenga objetos habituales configurados, el sistema te ofrecerá agregarlos automáticamente.
+
         </div>
+
       </div>
+
     </div>
+
   </div>
 
   <form method="post" novalidate>
+
     {% csrf_token %}
 
     <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+
       <div class="card-header bg-white border-0 p-3 p-md-4 pb-md-2">
+
         <div class="d-flex align-items-center gap-3">
+
           <div class="section-icon">
+
             <i class="bi bi-building"></i>
+
           </div>
+
           <div>
+
             <h2 class="h5 fw-bold mb-1">Datos del lugar</h2>
+
             <div class="text-muted small">
+
               Define la ruta física donde quedarán registrados los objetos.
+
             </div>
+
           </div>
+
         </div>
+
       </div>
 
       <div class="card-body p-3 p-md-4">
 
         {% if form.non_field_errors %}
+
           <div class="alert alert-danger">
+
             {{ form.non_field_errors }}
+
           </div>
+
         {% endif %}
 
         <div class="hierarchy-stack">
 
           <div class="hierarchy-row">
+
             <div class="hierarchy-number">1</div>
+
             <div class="hierarchy-content">
+
               <div class="fw-semibold mb-2">Sector</div>
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.sector_existente.label }}</label>
+
                   {{ form.sector_existente }}
+
                   {{ form.sector_existente.errors }}
+
                   <div class="form-text">Selecciona un sector ya registrado.</div>
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.sector_nuevo.label }}</label>
+
                   {{ form.sector_nuevo }}
+
                   {{ form.sector_nuevo.errors }}
+
                   <div class="form-text">O escribe el nombre de un nuevo sector.</div>
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
           <div class="hierarchy-row">
+
             <div class="hierarchy-number">2</div>
+
             <div class="hierarchy-content">
+
               <div class="fw-semibold mb-2">Ubicación</div>
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.ubicacion_existente.label }}</label>
+
                   {{ form.ubicacion_existente }}
+
                   {{ form.ubicacion_existente.errors }}
+
                   <div class="form-text">Se filtra según el sector seleccionado.</div>
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.ubicacion_nueva.label }}</label>
+
                   {{ form.ubicacion_nueva }}
+
                   {{ form.ubicacion_nueva.errors }}
+
                   <div class="form-text">O crea una nueva ubicación dentro del sector.</div>
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
           <div class="hierarchy-row">
+
             <div class="hierarchy-number">3</div>
+
             <div class="hierarchy-content">
+
               <div class="fw-semibold mb-2">Piso</div>
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.piso_existente.label }}</label>
+
                   {{ form.piso_existente }}
+
                   {{ form.piso_existente.errors }}
+
                   <div class="form-text">Se filtra según la ubicación seleccionada.</div>
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.piso_nuevo.label }}</label>
+
                   {{ form.piso_nuevo }}
+
                   {{ form.piso_nuevo.errors }}
+
                   <div class="form-text">O indica un nuevo número de piso.</div>
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
           <div class="hierarchy-row">
+
             <div class="hierarchy-number">4</div>
+
             <div class="hierarchy-content">
+
               <div class="fw-semibold mb-2">Tipo de lugar</div>
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.tipo_lugar_existente.label }}</label>
+
                   {{ form.tipo_lugar_existente }}
+
                   {{ form.tipo_lugar_existente.errors }}
+
                   <div class="form-text">Al elegirlo pueden aparecer objetos habituales sugeridos.</div>
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.tipo_lugar_nuevo.label }}</label>
+
                   {{ form.tipo_lugar_nuevo }}
+
                   {{ form.tipo_lugar_nuevo.errors }}
+
                   <div class="form-text">O crea una nueva variante de lugar.</div>
+
                 </div>
+
               </div>
+
             </div>
+
           </div>
 
           <div class="hierarchy-row hierarchy-row-last">
+
             <div class="hierarchy-number">5</div>
+
             <div class="hierarchy-content">
+
               <div class="fw-semibold mb-2">Lugar</div>
+
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.lugar_existente.label }}</label>
+
                   {{ form.lugar_existente }}
+
                   {{ form.lugar_existente.errors }}
+
                   <div class="form-text">Se filtra según piso y tipo de lugar.</div>
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">{{ form.lugar_nuevo.label }}</label>
+
                   {{ form.lugar_nuevo }}
+
                   {{ form.lugar_nuevo.errors }}
+
                   <div class="form-text">O escribe el nombre de un nuevo lugar.</div>
+
                 </div>
+
               </div>
+
+              <!-- Solo clasifica los lugares nuevos, nunca modifica uno existente. -->
+              <div id="bloque-area-comun" class="mt-3 p-3 border rounded-4 bg-light">
+                <div class="form-check">
+                  {{ form.lugar_es_area_comun }}
+                  <label class="form-check-label fw-semibold" for="{{ form.lugar_es_area_comun.id_for_label }}">
+                    ¿El nuevo lugar es un área común?
+                  </label>
+                </div>
+
+                <div class="small text-muted mt-2">
+                  Para baños, comedores, vestidores u otros espacios compartidos.
+                  Marcado: el QR será público inicialmente y permitirá reportes sin cuenta.
+                  Sin marcar: QR privado inicialmente. El modo podrá cambiarse después
+                  desde el detalle del lugar.
+                </div>
+
+                {% if form.lugar_es_area_comun.errors %}
+                  <div class="text-danger small mt-2">
+                    {{ form.lugar_es_area_comun.errors|striptags }}
+                  </div>
+                {% endif %}
+              </div>
+
             </div>
+
           </div>
 
         </div>
+
       </div>
+
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+
       <div class="card-header bg-white border-0 p-3 p-md-4 pb-md-2">
+
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+
           <div class="d-flex align-items-center gap-3">
+
             <div class="section-icon">
+
               <i class="bi bi-box-seam"></i>
+
             </div>
+
             <div>
+
               <h2 class="h5 fw-bold mb-1">Objetos del lugar</h2>
+
               <div class="text-muted small">
+
                 Agrega los activos y registra su condición actual.
+
               </div>
+
             </div>
+
           </div>
 
           <button id="add-obj-btn" class="btn pvsa-btn btn-sm" type="button">
+
             <i class="bi bi-plus-circle me-1"></i>
+
             Agregar objeto
+
           </button>
+
         </div>
+
       </div>
 
       <div class="card-body p-3 p-md-4">
 
         <div class="object-help rounded-4 p-3 mb-4">
+
           <div class="d-flex gap-3">
+
             <i class="bi bi-lightbulb fs-5 pvsa-text"></i>
+
             <div class="small text-muted">
+
               Para cada objeto: selecciona o crea su <strong>categoría</strong>, luego el
+
               <strong>objeto</strong>, después su <strong>variante</strong> y finalmente registra
+
               cantidades, importancia, mínimo operativo y detalle.
+
               El estado se calcula automáticamente.
+
             </div>
+
           </div>
+
         </div>
 
         {{ objetos_formset.management_form }}
 
         <div id="objetos-container">
+
           {% for f in objetos_formset %}
+
             <div class="objeto-form object-card rounded-4 p-3 p-md-4 mb-3">
+
               <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+
                 <div class="d-flex align-items-center gap-2">
+
                   <span class="object-number">{{ forloop.counter }}</span>
+
                   <h3 class="h6 fw-bold mb-0 objeto-title">Objeto {{ forloop.counter }}</h3>
+
                 </div>
 
                 <button type="button" class="btn btn-outline-danger btn-sm remove-obj-btn">
+
                   <i class="bi bi-trash3 me-1"></i>
+
                   Quitar
+
                 </button>
+
               </div>
 
               <div class="object-step mb-4">
+
                 <div class="step-heading">
+
                   <span>1</span>
+
                   Categoría
+
                 </div>
 
                 <div class="row g-3">
+
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">Categoría existente</label>
+
                     {{ f.categoria_existente }}
+
                     {{ f.categoria_existente.errors }}
+
                   </div>
 
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">O crea una nueva categoría</label>
+
                     {{ f.categoria_nueva }}
+
                     {{ f.categoria_nueva.errors }}
+
                   </div>
+
                 </div>
+
               </div>
 
               <div class="object-step mb-4">
+
                 <div class="step-heading">
+
                   <span>2</span>
+
                   Objeto
+
                 </div>
 
                 <div class="row g-3">
+
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">Objeto existente</label>
+
                     {{ f.objeto_existente }}
+
                     {{ f.objeto_existente.errors }}
+
                   </div>
 
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">O crea un nuevo objeto</label>
+
                     {{ f.objeto_nuevo }}
+
                     {{ f.objeto_nuevo.errors }}
+
                   </div>
+
                 </div>
+
               </div>
 
               <div class="object-step mb-4">
+
                 <div class="step-heading">
+
                   <span>3</span>
+
                   Variante
+
                 </div>
 
                 <div class="row g-3">
+
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">Variante existente</label>
+
                     {{ f.tipo_objeto_existente }}
+
                     {{ f.tipo_objeto_existente.errors }}
+
                   </div>
 
                   <div class="col-md-6">
+
                     <label class="form-label small text-muted mb-1">O crea una nueva variante</label>
+
                     <div class="row g-2">
+
                       <div class="col-sm-6">
+
                         <label class="form-label small text-muted mb-1">Marca</label>
+
                         {{ f.marca }}
+
                         {{ f.marca.errors }}
+
                       </div>
 
                       <div class="col-sm-6">
+
                         <label class="form-label small text-muted mb-1">Material</label>
+
                         {{ f.material }}
+
                         {{ f.material.errors }}
+
                       </div>
+
                     </div>
+
                   </div>
+
                 </div>
+
               </div>
 
               <div class="object-step">
+
                 <div class="step-heading">
+
                   <span>4</span>
+
                   Condición en este lugar
+
                 </div>
 
                 <div class="row g-3">
+
                   <div class="col-6 col-md-3">
+
                     <label class="form-label small text-muted mb-1">Cantidad total</label>
+
                     {{ f.cantidad }}
+
                     {{ f.cantidad.errors }}
+
                   </div>
 
                   <div class="col-6 col-md-3">
+
                     <label class="form-label small text-muted mb-1">Con falla</label>
+
                     {{ f.cantidad_mala }}
+
                     {{ f.cantidad_mala.errors }}
+
                   </div>
 
                   <div class="col-6 col-md-3">
+
                     <label class="form-label small text-muted mb-1">Por revisar</label>
+
                     {{ f.cantidad_pendiente }}
+
                     {{ f.cantidad_pendiente.errors }}
+
                   </div>
 
                   <div class="col-6 col-md-3">
+
                     <label class="form-label small text-muted mb-1">Mínimo operativo</label>
+
                     {{ f.minimo_operativo }}
+
                     {{ f.minimo_operativo.errors }}
+
                   </div>
 
                   <div class="col-md-3">
+
                     <label class="form-label small text-muted mb-1">Importancia</label>
+
                     {{ f.importancia }}
+
                     {{ f.importancia.errors }}
+
                   </div>
 
                   <div class="col-md-9">
+
                     <label class="form-label small text-muted mb-1">Detalle opcional</label>
+
                     {{ f.detalle }}
+
                     {{ f.detalle.errors }}
+
                   </div>
+
                 </div>
 
                 <div class="form-text mt-2">
+
                   La condición se calcula automáticamente a partir de las cantidades ingresadas.
+
                 </div>
+
               </div>
 
               {% if f.non_field_errors %}
+
                 <div class="alert alert-warning mt-3 mb-0">
+
                   {{ f.non_field_errors }}
+
                 </div>
+
               {% endif %}
+
             </div>
+
           {% endfor %}
+
         </div>
 
         <div id="empty-form" class="d-none">
+
           <div class="objeto-form object-card rounded-4 p-3 p-md-4 mb-3">
+
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+
               <div class="d-flex align-items-center gap-2">
+
                 <span class="object-number">+</span>
+
                 <h3 class="h6 fw-bold mb-0 objeto-title">Objeto X</h3>
+
               </div>
 
               <button type="button" class="btn btn-outline-danger btn-sm remove-obj-btn">
+
                 <i class="bi bi-trash3 me-1"></i>
+
                 Quitar
+
               </button>
+
             </div>
 
             <div class="object-step mb-4">
+
               <div class="step-heading">
+
                 <span>1</span>
+
                 Categoría
+
               </div>
 
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">Categoría existente</label>
+
                   {{ objetos_formset.empty_form.categoria_existente }}
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">O crea una nueva categoría</label>
+
                   {{ objetos_formset.empty_form.categoria_nueva }}
+
                 </div>
+
               </div>
+
             </div>
 
             <div class="object-step mb-4">
+
               <div class="step-heading">
+
                 <span>2</span>
+
                 Objeto
+
               </div>
 
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">Objeto existente</label>
+
                   {{ objetos_formset.empty_form.objeto_existente }}
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">O crea un nuevo objeto</label>
+
                   {{ objetos_formset.empty_form.objeto_nuevo }}
+
                 </div>
+
               </div>
+
             </div>
 
             <div class="object-step mb-4">
+
               <div class="step-heading">
+
                 <span>3</span>
+
                 Variante
+
               </div>
 
               <div class="row g-3">
+
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">Variante existente</label>
+
                   {{ objetos_formset.empty_form.tipo_objeto_existente }}
+
                 </div>
 
                 <div class="col-md-6">
+
                   <label class="form-label small text-muted mb-1">O crea una nueva variante</label>
+
                   <div class="row g-2">
+
                     <div class="col-sm-6">
+
                       <label class="form-label small text-muted mb-1">Marca</label>
+
                       {{ objetos_formset.empty_form.marca }}
+
                     </div>
 
                     <div class="col-sm-6">
+
                       <label class="form-label small text-muted mb-1">Material</label>
+
                       {{ objetos_formset.empty_form.material }}
+
                     </div>
+
                   </div>
+
                 </div>
+
               </div>
+
             </div>
 
             <div class="object-step">
+
               <div class="step-heading">
+
                 <span>4</span>
+
                 Condición en este lugar
+
               </div>
 
               <div class="row g-3">
+
                 <div class="col-6 col-md-3">
+
                   <label class="form-label small text-muted mb-1">Cantidad total</label>
+
                   {{ objetos_formset.empty_form.cantidad }}
+
                 </div>
 
                 <div class="col-6 col-md-3">
+
                   <label class="form-label small text-muted mb-1">Con falla</label>
+
                   {{ objetos_formset.empty_form.cantidad_mala }}
+
                 </div>
 
                 <div class="col-6 col-md-3">
+
                   <label class="form-label small text-muted mb-1">Por revisar</label>
+
                   {{ objetos_formset.empty_form.cantidad_pendiente }}
+
                 </div>
 
                 <div class="col-6 col-md-3">
+
                   <label class="form-label small text-muted mb-1">Mínimo operativo</label>
+
                   {{ objetos_formset.empty_form.minimo_operativo }}
+
                 </div>
 
                 <div class="col-md-3">
+
                   <label class="form-label small text-muted mb-1">Importancia</label>
+
                   {{ objetos_formset.empty_form.importancia }}
+
                 </div>
 
                 <div class="col-md-9">
+
                   <label class="form-label small text-muted mb-1">Detalle opcional</label>
+
                   {{ objetos_formset.empty_form.detalle }}
+
                 </div>
+
               </div>
 
               <div class="form-text mt-2">
+
                 La condición se calcula automáticamente a partir de las cantidades ingresadas.
+
               </div>
+
             </div>
+
           </div>
+
         </div>
 
         <button id="add-obj-btn-bottom" class="btn btn-outline-secondary btn-sm mt-1" type="button">
+
           <i class="bi bi-plus-circle me-1"></i>
+
           Agregar otro objeto
+
         </button>
 
       </div>
+
     </div>
 
     <div class="save-bar card border-0 shadow-sm rounded-4">
+
       <div class="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+
         <div>
+
           <div class="fw-semibold">¿Todo listo?</div>
+
           <div class="text-muted small">
+
             Revisa los datos y guarda la estructura junto con sus objetos.
+
           </div>
+
         </div>
 
         <div class="d-flex gap-2">
+
           <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+
             Cancelar
+
           </a>
 
           <button type="submit" class="btn pvsa-btn px-4">
+
             <i class="bi bi-check-circle me-1"></i>
+
             Guardar registro
+
           </button>
+
         </div>
+
       </div>
+
     </div>
 
   </form>
 
   {{ sectores_existentes|json_script:"estructura-sectores-data" }}
+
   {{ ubicaciones_existentes|json_script:"estructura-ubicaciones-data" }}
+
   {{ pisos_existentes|json_script:"estructura-pisos-data" }}
+
   {{ tipos_lugar_existentes|json_script:"estructura-tipos-lugar-data" }}
+
   {{ lugares_existentes|json_script:"estructura-lugares-data" }}
+
   {{ categorias_existentes|json_script:"estructura-categorias-data" }}
+
   {{ objetos_existentes|json_script:"estructura-objetos-data" }}
 
 </div>
 
 <style>
+
   .pvsa-section-badge {
+
     color: var(--pvsa-accent);
+
     background: rgba(6, 182, 185, .08);
+
     border: 1px solid rgba(6, 182, 185, .20);
+
     border-radius: 999px;
+
     padding: .35rem .7rem;
+
     font-size: .82rem;
+
     font-weight: 700;
+
   }
 
   .pvsa-info-alert {
+
     background: rgba(6, 182, 185, .06);
+
   }
 
   .section-icon {
+
     width: 44px;
+
     height: 44px;
+
     border-radius: 13px;
+
     display: grid;
+
     place-items: center;
+
     flex: 0 0 auto;
+
     background: rgba(6, 182, 185, .10);
+
     color: var(--pvsa-accent);
+
     font-size: 1.15rem;
+
   }
 
   .hierarchy-stack {
+
     position: relative;
+
   }
 
   .hierarchy-row {
+
     display: flex;
+
     gap: 1rem;
+
     position: relative;
+
     padding-bottom: 1.5rem;
+
   }
 
   .hierarchy-row:not(.hierarchy-row-last)::before {
+
     content: "";
+
     position: absolute;
+
     top: 34px;
+
     left: 16px;
+
     width: 2px;
+
     height: calc(100% - 18px);
+
     background: #e9ecef;
+
   }
 
   .hierarchy-number {
+
     width: 34px;
+
     height: 34px;
+
     border-radius: 50%;
+
     flex: 0 0 auto;
+
     display: grid;
+
     place-items: center;
+
     background: var(--pvsa-accent);
+
     color: #fff;
+
     font-weight: 800;
+
     font-size: .85rem;
+
     position: relative;
+
     z-index: 1;
+
   }
 
   .hierarchy-content {
+
     flex: 1;
+
     min-width: 0;
+
     padding-top: .25rem;
+
   }
 
   .object-help {
+
     background: #f8f9fa;
+
     border: 1px solid rgba(0, 0, 0, .06);
+
   }
 
   .object-card {
+
     background: #fff;
+
     border: 1px solid rgba(0, 0, 0, .10);
+
     box-shadow: 0 3px 12px rgba(0, 0, 0, .035);
+
   }
 
   .object-number {
+
     width: 31px;
+
     height: 31px;
+
     border-radius: 9px;
+
     display: grid;
+
     place-items: center;
+
     background: rgba(6, 182, 185, .10);
+
     color: var(--pvsa-accent);
+
     font-weight: 800;
+
     font-size: .82rem;
+
   }
 
   .object-step {
+
     padding: 1rem;
+
     border: 1px solid #e9ecef;
+
     border-radius: .85rem;
+
     background: #fafbfc;
+
   }
 
   .step-heading {
+
     display: flex;
+
     align-items: center;
+
     gap: .5rem;
+
     font-size: .86rem;
+
     font-weight: 700;
+
     margin-bottom: .9rem;
+
   }
 
   .step-heading > span {
+
     width: 23px;
+
     height: 23px;
+
     border-radius: 50%;
+
     display: grid;
+
     place-items: center;
+
     background: var(--pvsa-accent);
+
     color: #fff;
+
     font-size: .72rem;
+
   }
 
   .save-bar {
+
     position: sticky;
+
     bottom: 12px;
+
     z-index: 1010;
+
     border: 1px solid rgba(6, 182, 185, .18) !important;
+
   }
 
   .errorlist {
+
     list-style: none;
+
     padding-left: 0;
+
     margin: .35rem 0 0;
+
     color: #dc3545;
+
     font-size: .82rem;
+
   }
 
   .name-warning {
+
     margin-top: .45rem;
+
     padding: .6rem .7rem;
+
     border-radius: .7rem;
+
     font-size: .8rem;
+
     line-height: 1.4;
+
   }
 
   .name-warning-exact {
+
     background: rgba(220, 53, 69, .08);
+
     border: 1px solid rgba(220, 53, 69, .18);
+
     color: #b02a37;
+
   }
 
   .name-warning-similar {
+
     background: rgba(255, 193, 7, .12);
+
     border: 1px solid rgba(255, 193, 7, .25);
+
     color: #6f5600;
+
   }
 
   .choice-hint {
+
     display: inline-flex;
+
     align-items: center;
+
     gap: .3rem;
+
     padding: .25rem .5rem;
+
     border-radius: 999px;
+
     background: #f8f9fa;
+
     border: 1px solid #e9ecef;
+
     font-size: .73rem;
+
     color: #6c757d;
+
   }
 
   @media (max-width: 767.98px) {
+
     .hierarchy-row {
+
       gap: .7rem;
+
     }
 
     .object-step {
+
       padding: .85rem;
+
     }
 
     .save-bar {
+
       position: static;
+
     }
+
   }
+
 </style>
 
 <script>
+
 document.addEventListener("DOMContentLoaded", function () {
+
     const addBtn = document.getElementById("add-obj-btn");
+
     const container = document.getElementById("objetos-container");
+
     const totalFormsInput = document.getElementById("id_obj-TOTAL_FORMS");
+
     const emptyFormDiv = document.getElementById("empty-form");
 
     function renumerarTitulos() {
+
         const titulos = container.querySelectorAll(".objeto-title");
+
         titulos.forEach(function (titulo, idx) {
+
             titulo.textContent = "Objeto " + (idx + 1);
+
         });
+
     }
 
     function reindexForms() {
+
         const forms = container.querySelectorAll(".objeto-form");
 
         forms.forEach(function (formElem, index) {
+
             const campos = formElem.querySelectorAll("input, select, textarea, label");
+
             campos.forEach(function (el) {
+
                 if (el.name && el.name.indexOf("obj-") === 0) {
+
                     el.name = el.name.replace(/obj-(\d+)-/, "obj-" + index + "-");
+
                 }
+
                 if (el.id && el.id.indexOf("id_obj-") === 0) {
+
                     el.id = el.id.replace(/id_obj-(\d+)-/, "id_obj-" + index + "-");
+
                 }
+
                 if (el.htmlFor && el.htmlFor.indexOf("id_obj-") === 0) {
+
                     el.htmlFor = el.htmlFor.replace(/id_obj-(\d+)-/, "id_obj-" + index + "-");
+
                 }
+
             });
+
         });
 
         totalFormsInput.value = forms.length;
+
         renumerarTitulos();
+
     }
 
     addBtn.addEventListener("click", function (e) {
+
         e.preventDefault();
 
         const currentCount = parseInt(totalFormsInput.value, 10) || 0;
+
         const newIndex = currentCount;
 
         const templateHtml = emptyFormDiv.innerHTML.replace(/__prefix__/g, newIndex);
+
         const tempContainer = document.createElement("div");
+
         tempContainer.innerHTML = templateHtml.trim();
 
         const newForm = tempContainer.firstElementChild;
+
         container.appendChild(newForm);
 
         reindexForms();
+
     });
 
     container.addEventListener("click", function (e) {
+
         const btn = e.target.closest(".remove-obj-btn");
+
         if (!btn) return;
 
         e.preventDefault();
+
         const card = btn.closest(".objeto-form");
+
         if (card) {
+
             card.remove();
+
             reindexForms();
+
         }
+
     });
 
     reindexForms();
+
 });
+
 </script>
 
 <script>
+
 document.addEventListener("DOMContentLoaded", function () {
+
   const sectorSelect = document.getElementById("id_sector_existente");
+
   const ubicacionSelect = document.getElementById("id_ubicacion_existente");
+
   const pisoSelect = document.getElementById("id_piso_existente");
 
   if (sectorSelect && ubicacionSelect && pisoSelect) {
+
     sectorSelect.addEventListener("change", function () {
+
       const sectorId = this.value || "";
 
       ubicacionSelect.innerHTML = '<option value="">---------</option>';
+
       pisoSelect.innerHTML = '<option value="">---------</option>';
 
       if (!sectorId) return;
 
       fetch(`/ajax/ubicaciones-por-sector/?sector_id=${sectorId}`)
+
         .then(r => r.json())
+
         .then(data => {
+
           data.forEach(item => {
+
             const opt = document.createElement("option");
+
             opt.value = item.id;
+
             opt.textContent = item.nombre;
+
             ubicacionSelect.appendChild(opt);
+
           });
+
         })
+
         .catch(err => console.error("Error cargando ubicaciones:", err));
+
     });
 
     ubicacionSelect.addEventListener("change", function () {
+
       const ubicacionId = this.value || "";
 
       pisoSelect.innerHTML = '<option value="">---------</option>';
+
       if (!ubicacionId) return;
 
       fetch(`/ajax/pisos-por-ubicacion/?ubicacion_id=${ubicacionId}`)
+
         .then(r => r.json())
+
         .then(data => {
+
           data.forEach(item => {
+
             const opt = document.createElement("option");
+
             opt.value = item.id;
+
             opt.textContent = item.nombre;
+
             pisoSelect.appendChild(opt);
+
           });
+
         })
+
         .catch(err => console.error("Error cargando pisos:", err));
+
     });
+
   }
 
   const objetosContainer = document.getElementById("objetos-container");
 
   if (objetosContainer) {
+
     objetosContainer.addEventListener("change", function (e) {
+
       const target = e.target;
+
       if (!target.name) return;
 
       if (target.name.endsWith("-categoria_existente")) {
+
         const card = target.closest(".objeto-form");
+
         if (!card) return;
 
         const objetoSelect = card.querySelector('select[name$="-objeto_existente"]');
+
         const tipoSelect = card.querySelector('select[name$="-tipo_objeto_existente"]');
 
         if (objetoSelect) {
+
           objetoSelect.innerHTML = '<option value="">---------</option>';
+
         }
+
         if (tipoSelect) {
+
           tipoSelect.innerHTML = '<option value="">---------</option>';
+
         }
 
         const categoriaId = target.value || "";
+
         if (!categoriaId || !objetoSelect) return;
 
         fetch(`/ajax/objetos-por-categoria/?categoria_id=${categoriaId}`)
+
           .then(r => r.json())
+
           .then(data => {
+
             data.forEach(item => {
+
               const opt = document.createElement("option");
+
               opt.value = item.id;
+
               opt.textContent = item.nombre;
+
               objetoSelect.appendChild(opt);
+
             });
+
           })
+
           .catch(err => console.error("Error cargando objetos:", err));
+
       }
 
       if (target.name.endsWith("-objeto_existente")) {
+
         const card = target.closest(".objeto-form");
+
         if (!card) return;
 
         const tipoSelect = card.querySelector('select[name$="-tipo_objeto_existente"]');
+
         if (!tipoSelect) return;
 
         tipoSelect.innerHTML = '<option value="">---------</option>';
 
         const objetoId = target.value || "";
+
         if (!objetoId) return;
 
         fetch(`/ajax/tipos-por-objeto/?objeto_id=${objetoId}`)
+
           .then(r => r.json())
+
           .then(data => {
+
             data.forEach(item => {
+
               const opt = document.createElement("option");
+
               opt.value = item.id;
+
               opt.textContent = item.nombre;
+
               tipoSelect.appendChild(opt);
+
             });
+
           })
+
           .catch(err => console.error("Error cargando tipos de objeto:", err));
+
       }
+
     });
+
   }
+
 });
+
 </script>
 
 <script>
+
 (() => {
+
   if (window.__TIPICOS_MODAL_INSTALLED__) return;
+
   window.__TIPICOS_MODAL_INSTALLED__ = true;
 
   const $ = (sel, root = document) => root.querySelector(sel);
 
   function ensureModal() {
+
     let modalEl =
+
       document.getElementById("modalObjetosTipicos") ||
+
       document.getElementById("modal-objetos-tipicos");
 
     if (modalEl) return modalEl;
 
     const wrap = document.createElement("div");
+
     wrap.innerHTML = `
+
 <div class="modal fade" id="modalObjetosTipicos" tabindex="-1" aria-hidden="true">
+
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
+
     <div class="modal-content">
+
       <div class="modal-header">
+
         <h5 class="modal-title">Objetos habituales del tipo de lugar</h5>
+
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+
       </div>
+
       <div class="modal-body">
+
         <p class="text-muted mb-2">Marca los objetos que quieres agregar al lugar.</p>
+
         <div id="lista-objetos-tipicos" class="d-flex flex-column gap-2"></div>
+
         <div id="tipicos-vacio" class="text-muted small mt-2" style="display:none;">
+
           Este tipo de lugar no tiene objetos habituales configurados.
+
         </div>
+
       </div>
+
       <div class="modal-footer">
+
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
         <button type="button" class="btn btn-primary" id="btnAgregarTipicos">Agregar objetos</button>
+
       </div>
+
     </div>
+
   </div>
+
 </div>`;
+
     document.body.appendChild(wrap.firstElementChild);
+
     return document.getElementById("modalObjetosTipicos");
+
   }
 
   function getTotalFormsInput() {
+
     return document.querySelector('input[name$="-TOTAL_FORMS"]');
+
   }
 
   function getPrefix() {
+
     const inp = getTotalFormsInput();
+
     return inp ? inp.name.replace("-TOTAL_FORMS", "") : "form";
+
   }
 
   function addNewRowAndGetIndex() {
+
     const totalInput = getTotalFormsInput();
+
     if (!totalInput) return { idx: null, card: null };
 
     const idx = parseInt(totalInput.value, 10) || 0;
 
     const empty =
+
       document.getElementById("empty-form") ||
+
       document.querySelector("[data-empty-form]");
 
     const container =
+
       document.getElementById("objetos-container") ||
+
       document.querySelector("[data-objetos-container]");
 
     if (!empty || !container) return { idx: null, card: null };
@@ -964,139 +1660,221 @@ document.addEventListener("DOMContentLoaded", function () {
     const html = (empty.dataset.emptyForm || empty.innerHTML).replaceAll("__prefix__", idx);
 
     const wrapper = document.createElement("div");
+
     wrapper.innerHTML = html.trim();
 
     const nodes = Array.from(wrapper.childNodes).filter(n => n.nodeType === 1);
+
     nodes.forEach(n => container.appendChild(n));
 
     totalInput.value = idx + 1;
 
     const cards = container.querySelectorAll(".objeto-form");
+
     const card = cards.length ? cards[cards.length - 1] : null;
 
     return { idx, card };
+
   }
 
   function findByName(name, root = document) {
+
     return root.querySelector(`[name="${CSS.escape(name)}"]`);
+
   }
 
   function dispatchChange(el) {
+
     if (!el) return;
+
     el.dispatchEvent(new Event("change", { bubbles: true }));
+
   }
 
   function clearText(name, root = document) {
+
     const el = findByName(name, root);
+
     if (el) el.value = "";
+
   }
 
   function setValueByName(name, value, root = document) {
+
     const el = findByName(name, root);
+
     if (!el) return null;
+
     el.value = String(value);
+
     return el;
+
   }
 
   async function waitForOption(selectEl, value, timeoutMs = 2500) {
+
     if (!selectEl) return false;
+
     const target = String(value);
+
     const start = Date.now();
 
     while (Date.now() - start < timeoutMs) {
+
       const has = Array.from(selectEl.options).some(o => String(o.value) === target);
+
       if (has) return true;
+
       await new Promise(r => setTimeout(r, 50));
+
     }
+
     return false;
+
   }
 
   async function setCascadeSelects(prefix, idx, item, cardRoot) {
+
     const categoriaName = `${prefix}-${idx}-categoria_existente`;
+
     const objetoName = `${prefix}-${idx}-objeto_existente`;
+
     const tipoName = `${prefix}-${idx}-tipo_objeto_existente`;
 
     const categoriaSel = setValueByName(categoriaName, item.categoria_id, cardRoot) || findByName(categoriaName);
+
     dispatchChange(categoriaSel);
 
     const objetoSel = findByName(objetoName, cardRoot) || findByName(objetoName);
+
     await waitForOption(objetoSel, item.objeto_id);
+
     if (objetoSel) {
+
       objetoSel.value = String(item.objeto_id);
+
       dispatchChange(objetoSel);
+
     }
 
     const tipoSel = findByName(tipoName, cardRoot) || findByName(tipoName);
+
     await waitForOption(tipoSel, item.tipo_objeto_id);
+
     if (tipoSel) {
+
       tipoSel.value = String(item.tipo_objeto_id);
+
       dispatchChange(tipoSel);
+
     }
 
     const cantName = `${prefix}-${idx}-cantidad`;
+
     const malaName = `${prefix}-${idx}-cantidad_mala`;
+
     const pendienteName = `${prefix}-${idx}-cantidad_pendiente`;
+
     const importanciaName = `${prefix}-${idx}-importancia`;
+
     const minimoName = `${prefix}-${idx}-minimo_operativo`;
 
     const cantEl = findByName(cantName, cardRoot) || findByName(cantName);
+
     if (cantEl && (cantEl.value === "" || cantEl.value == null)) {
+
       cantEl.value = 1;
+
     }
 
     const malaEl = findByName(malaName, cardRoot) || findByName(malaName);
+
     if (malaEl && (malaEl.value === "" || malaEl.value == null)) {
+
       malaEl.value = 0;
+
     }
 
     const pendienteEl = findByName(pendienteName, cardRoot) || findByName(pendienteName);
+
     if (pendienteEl && (pendienteEl.value === "" || pendienteEl.value == null)) {
+
       pendienteEl.value = 0;
+
     }
 
     const importanciaEl = findByName(importanciaName, cardRoot) || findByName(importanciaName);
+
     if (importanciaEl && (importanciaEl.value === "" || importanciaEl.value == null)) {
+
       importanciaEl.value = 1;
+
     }
 
     const minimoEl = findByName(minimoName, cardRoot) || findByName(minimoName);
+
     if (minimoEl && (minimoEl.value === "" || minimoEl.value == null)) {
+
       minimoEl.value = 1;
+
     }
+
   }
 
   function closeModalHard(modalEl) {
+
     if (!modalEl) return;
 
     try {
+
       if (typeof bootstrap !== "undefined") {
+
         const inst = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+
         inst.hide();
+
       }
+
     } catch (e) {}
 
     setTimeout(() => {
+
       modalEl.classList.remove("show");
+
       modalEl.style.display = "none";
+
       modalEl.setAttribute("aria-hidden", "true");
+
       modalEl.removeAttribute("aria-modal");
 
       document.body.classList.remove("modal-open");
+
       document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+
       document.body.style.removeProperty("padding-right");
+
       document.body.style.removeProperty("overflow");
+
     }, 50);
+
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+
     const tipoLugarSelect = document.getElementById("id_tipo_lugar_existente");
+
     if (!tipoLugarSelect) return;
 
     const modalEl = ensureModal();
+
     const lista =
+
       document.getElementById("lista-objetos-tipicos") ||
+
       document.getElementById("listaObjetosTipicos");
+
     const vacio = document.getElementById("tipicos-vacio");
+
     const btnAgregar = document.getElementById("btnAgregarTipicos");
 
     if (!modalEl || !lista || !btnAgregar || typeof bootstrap === "undefined") return;
@@ -1104,505 +1882,855 @@ document.addEventListener("DOMContentLoaded", function () {
     const modal = new bootstrap.Modal(modalEl);
 
     async function loadTipicosAndShow(tipoLugarPk) {
+
       lista.innerHTML = "";
+
       if (vacio) vacio.style.display = "none";
 
       const r = await fetch(`/api/objetos-tipicos/${tipoLugarPk}/`, {
+
         headers: { "X-Requested-With": "XMLHttpRequest" }
+
       });
+
       const data = await r.json();
 
       const items = Array.isArray(data) ? data : (data.objetos || data.items || []);
 
       if (!items.length) {
+
         if (vacio) vacio.style.display = "block";
+
         modal.show();
+
         return;
+
       }
 
       items.forEach((it) => {
+
         const item = {
+
           categoria_id: it.categoria_id ?? it.categoria ?? it.categoriaId,
+
           objeto_id: it.objeto_id ?? it.objeto ?? it.objetoId,
+
           tipo_objeto_id: it.tipo_objeto_id ?? it.tipo ?? it.tipoId ?? it.tipo_objeto ?? it.tipo_objetoId,
+
           label: it.label ?? it.nombre ?? it.texto ?? ""
+
         };
 
         const row = document.createElement("div");
+
         row.className = "form-check";
+
         row.innerHTML = `
+
           <input class="form-check-input" type="checkbox" checked
+
                  data-categoria="${item.categoria_id}"
+
                  data-objeto="${item.objeto_id}"
+
                  data-tipo="${item.tipo_objeto_id}"
+
                  id="chk_tipico_${item.tipo_objeto_id}_${item.objeto_id}">
+
           <label class="form-check-label" for="chk_tipico_${item.tipo_objeto_id}_${item.objeto_id}">
+
             ${item.label || `ID ${item.tipo_objeto_id}`}
+
           </label>
+
         `;
+
         lista.appendChild(row);
+
       });
 
       modal.show();
+
     }
 
     tipoLugarSelect.addEventListener("change", async function () {
+
       const tipoLugarPk = this.value;
+
       if (!tipoLugarPk) return;
 
       try {
+
         await loadTipicosAndShow(tipoLugarPk);
+
       } catch (e) {
+
         console.error(e);
+
       }
+
     });
 
     btnAgregar.addEventListener("click", async function () {
+
       const prefix = getPrefix();
+
       const checks = lista.querySelectorAll('input[type="checkbox"]:checked');
 
       if (!checks.length) {
+
         closeModalHard(modalEl);
+
         return;
+
       }
 
       for (const chk of checks) {
+
         const { idx, card } = addNewRowAndGetIndex();
+
         if (idx === null) continue;
 
         clearText(`${prefix}-${idx}-categoria_nueva`, card || document);
+
         clearText(`${prefix}-${idx}-objeto_nuevo`, card || document);
+
         clearText(`${prefix}-${idx}-marca`, card || document);
+
         clearText(`${prefix}-${idx}-material`, card || document);
 
         await setCascadeSelects(
+
           prefix,
+
           idx,
+
           {
+
             categoria_id: chk.dataset.categoria,
+
             objeto_id: chk.dataset.objeto,
+
             tipo_objeto_id: chk.dataset.tipo
+
           },
+
           card || document
+
         );
+
       }
 
       closeModalHard(modalEl);
+
     });
+
   });
+
 })();
+
 </script>
 
 <script>
+
 document.addEventListener("DOMContentLoaded", function () {
+
   const pisoSel = document.getElementById("id_piso_existente");
+
   const tipoSel = document.getElementById("id_tipo_lugar_existente");
+
   const lugarSel = document.getElementById("id_lugar_existente");
 
   const pisoNuevo = document.getElementById("id_piso_nuevo");
+
   const tipoNuevo = document.getElementById("id_tipo_lugar_nuevo");
+
   const lugarNuevo = document.getElementById("id_lugar_nuevo");
 
   if (!pisoSel || !tipoSel || !lugarSel) return;
 
   function resetLugar() {
+
     lugarSel.innerHTML = '<option value="">---------</option>';
+
   }
 
   function canLoad() {
+
     const pisoId = (pisoSel.value || "").trim();
+
     const tipoId = (tipoSel.value || "").trim();
+
     const pisoNew = (pisoNuevo?.value || "").trim();
+
     const tipoNew = (tipoNuevo?.value || "").trim();
 
     return !!(pisoId && tipoId) && !pisoNew && !tipoNew;
+
   }
 
   async function loadLugares() {
+
     resetLugar();
 
     if (!canLoad()) {
+
       lugarSel.disabled = true;
+
       return;
+
     }
 
     lugarSel.disabled = false;
 
     const pisoId = (pisoSel.value || "").trim();
+
     const tipoId = (tipoSel.value || "").trim();
 
     try {
+
       const url = `/ajax/lugares-por-piso/?piso_id=${encodeURIComponent(pisoId)}&tipo_lugar_id=${encodeURIComponent(tipoId)}`;
+
       const r = await fetch(url);
+
       const data = await r.json();
 
       data.forEach(item => {
+
         const opt = document.createElement("option");
+
         opt.value = item.id;
+
         opt.textContent = item.nombre;
+
         lugarSel.appendChild(opt);
+
       });
+
     } catch (err) {
+
       console.error("Error cargando lugares:", err);
+
     }
+
   }
 
   pisoSel.addEventListener("change", loadLugares);
+
   tipoSel.addEventListener("change", loadLugares);
 
   if (pisoNuevo) {
+
     pisoNuevo.addEventListener("input", () => {
+
       resetLugar();
+
       lugarSel.disabled = true;
+
     });
+
   }
 
   if (tipoNuevo) {
+
     tipoNuevo.addEventListener("input", () => {
+
       resetLugar();
+
       lugarSel.disabled = true;
+
     });
+
   }
 
   if (lugarNuevo) {
+
     lugarSel.addEventListener("change", () => {
+
       if ((lugarSel.value || "").trim()) {
+
         lugarNuevo.value = "";
+
       }
+
     });
 
     lugarNuevo.addEventListener("input", () => {
+
       if ((lugarNuevo.value || "").trim()) {
+
         lugarSel.value = "";
+
       }
+
     });
+
   }
 
   loadLugares();
+
 });
+
 </script>
 
-
 <script>
+
 document.addEventListener("DOMContentLoaded", function () {
+
   const secondaryAddButton = document.getElementById("add-obj-btn-bottom");
+
   const primaryAddButton = document.getElementById("add-obj-btn");
 
   if (secondaryAddButton && primaryAddButton) {
+
     secondaryAddButton.addEventListener("click", function () {
+
       primaryAddButton.click();
+
     });
+
   }
+
 });
+
 </script>
 
-
 <script>
+
 document.addEventListener("DOMContentLoaded", function () {
+
   function leerJson(id, fallback) {
+
     const el = document.getElementById(id);
+
     if (!el) return fallback;
+
     try {
+
       return JSON.parse(el.textContent);
+
     } catch (e) {
+
       return fallback;
+
     }
+
   }
 
   const sectores = leerJson("estructura-sectores-data", []);
+
   const ubicaciones = leerJson("estructura-ubicaciones-data", []);
+
   const pisos = leerJson("estructura-pisos-data", []);
+
   const tiposLugar = leerJson("estructura-tipos-lugar-data", []);
+
   const lugares = leerJson("estructura-lugares-data", []);
+
   const categorias = leerJson("estructura-categorias-data", []);
+
   const objetos = leerJson("estructura-objetos-data", []);
 
   function normalizar(valor) {
+
     return String(valor || "")
+
       .normalize("NFD")
+
       .replace(/[\u0300-\u036f]/g, "")
+
       .trim()
+
       .replace(/\s+/g, " ")
+
       .toLocaleLowerCase("es");
+
   }
 
   function distancia(a, b) {
+
     a = normalizar(a);
+
     b = normalizar(b);
 
     const filas = a.length + 1;
+
     const columnas = b.length + 1;
+
     const matriz = Array.from({ length: filas }, function () {
+
       return Array(columnas).fill(0);
+
     });
 
     for (let i = 0; i < filas; i++) matriz[i][0] = i;
+
     for (let j = 0; j < columnas; j++) matriz[0][j] = j;
 
     for (let i = 1; i < filas; i++) {
+
       for (let j = 1; j < columnas; j++) {
+
         const costo = a[i - 1] === b[j - 1] ? 0 : 1;
+
         matriz[i][j] = Math.min(
+
           matriz[i - 1][j] + 1,
+
           matriz[i][j - 1] + 1,
+
           matriz[i - 1][j - 1] + costo
+
         );
+
       }
+
     }
 
     return matriz[a.length][b.length];
+
   }
 
   function parecido(a, b) {
+
     const x = normalizar(a);
+
     const y = normalizar(b);
 
     if (!x || !y || x === y) return false;
+
     if (Math.min(x.length, y.length) < 4) return false;
 
     const d = distancia(x, y);
+
     const largo = Math.max(x.length, y.length);
 
     if (largo <= 8) return d === 1;
+
     if (largo <= 16) return d <= 2;
+
     if (d <= 3) return true;
 
     return Math.abs(x.length - y.length) <= 2 &&
+
       (x.includes(y) || y.includes(x));
+
   }
 
   function mostrarAviso(input, exacto, similares, extraExacto) {
+
     if (!input) return;
 
     let box = input.parentElement.querySelector(".name-warning");
+
     if (!box) {
+
       box = document.createElement("div");
+
       box.className = "name-warning d-none";
+
       input.insertAdjacentElement("afterend", box);
+
     }
 
     if (exacto) {
+
       box.className = "name-warning name-warning-exact";
+
       box.innerHTML =
+
         '<i class="bi bi-x-circle-fill me-1"></i>' +
+
         (extraExacto || "Ya existe un registro con este nombre. Usa el existente.");
+
       return;
+
     }
 
     if (similares && similares.length) {
+
       box.className = "name-warning name-warning-similar";
+
       box.innerHTML =
+
         '<div class="fw-semibold">' +
+
         '<i class="bi bi-exclamation-triangle-fill me-1"></i>' +
+
         'Revisa el nombre antes de continuar.</div>' +
+
         '<div class="mt-1">Ya existe algo muy parecido: <strong>' +
+
         similares.slice(0, 2).join("</strong>, <strong>") +
+
         '</strong>.</div>';
+
       return;
+
     }
 
     box.className = "name-warning d-none";
+
     box.innerHTML = "";
+
   }
 
   function validarNombreSimple(input, lista) {
+
     if (!input) return;
 
     const valor = normalizar(input.value);
+
     if (!valor) {
+
       mostrarAviso(input, null, []);
+
       return;
+
     }
 
     const exacto = lista.find(function (nombre) {
+
       return normalizar(nombre) === valor;
+
     });
 
     const similares = lista
+
       .filter(function (nombre) {
+
         return parecido(valor, nombre);
+
       })
+
       .slice(0, 2);
 
     mostrarAviso(input, exacto, similares);
+
   }
 
   const sectorNuevo = document.getElementById("id_sector_nuevo");
+
   const ubicacionNueva = document.getElementById("id_ubicacion_nueva");
+
   const pisoNuevo = document.getElementById("id_piso_nuevo");
+
   const ubicacionExistente = document.getElementById("id_ubicacion_existente");
+
   const tipoLugarNuevo = document.getElementById("id_tipo_lugar_nuevo");
+
   const lugarNuevo = document.getElementById("id_lugar_nuevo");
+
   const pisoExistente = document.getElementById("id_piso_existente");
 
   if (sectorNuevo) {
+
     sectorNuevo.addEventListener("input", function () {
+
       validarNombreSimple(sectorNuevo, sectores);
+
     });
+
     validarNombreSimple(sectorNuevo, sectores);
+
   }
 
   if (ubicacionNueva) {
+
     ubicacionNueva.addEventListener("input", function () {
+
       const valor = normalizar(ubicacionNueva.value);
 
       const exacto = ubicaciones.find(function (item) {
+
         return normalizar(item.ubicacion) === valor;
+
       });
 
       const similares = ubicaciones
+
         .filter(function (item) {
+
           return parecido(valor, item.ubicacion);
+
         })
+
         .slice(0, 2)
+
         .map(function (item) {
+
           return item.ubicacion + " · " + item.sector__sector;
+
         });
 
       mostrarAviso(
+
         ubicacionNueva,
+
         exacto,
+
         similares,
+
         exacto
+
           ? "Ya existe <strong>" + exacto.ubicacion +
+
             "</strong> en <strong>" + exacto.sector__sector +
+
             "</strong>. Selecciona esa ubicación en vez de crearla de nuevo."
+
           : ""
+
       );
+
     });
+
     ubicacionNueva.dispatchEvent(new Event("input"));
+
   }
 
   function validarPiso() {
+
     if (!pisoNuevo) return;
 
     const valor = String(pisoNuevo.value || "").trim();
+
     const ubicacionId = Number(ubicacionExistente?.value || 0);
 
     if (!valor || !ubicacionId) {
+
       mostrarAviso(pisoNuevo, null, []);
+
       return;
+
     }
 
     const exacto = pisos.find(function (item) {
+
       return Number(item.ubicacion_id) === ubicacionId &&
+
         String(item.piso) === valor;
+
     });
 
     mostrarAviso(
+
       pisoNuevo,
+
       exacto,
+
       [],
+
       exacto
+
         ? "Ese piso ya existe en la ubicación seleccionada. Usa el piso existente."
+
         : ""
+
     );
+
   }
 
   if (pisoNuevo) pisoNuevo.addEventListener("input", validarPiso);
+
   if (ubicacionExistente) ubicacionExistente.addEventListener("change", validarPiso);
+
   validarPiso();
 
   if (tipoLugarNuevo) {
+
     tipoLugarNuevo.addEventListener("input", function () {
+
       validarNombreSimple(tipoLugarNuevo, tiposLugar);
+
     });
+
     validarNombreSimple(tipoLugarNuevo, tiposLugar);
+
   }
 
   function validarLugar() {
+
     if (!lugarNuevo) return;
 
     const valor = normalizar(lugarNuevo.value);
+
     const pisoId = Number(pisoExistente?.value || 0);
 
     if (!valor || !pisoId) {
+
       mostrarAviso(lugarNuevo, null, []);
+
       return;
+
     }
 
     const candidatos = lugares.filter(function (item) {
+
       return Number(item.piso_id) === pisoId;
+
     });
 
     const exacto = candidatos.find(function (item) {
+
       return normalizar(item.nombre_del_lugar) === valor;
+
     });
 
     const similares = candidatos
+
       .filter(function (item) {
+
         return parecido(valor, item.nombre_del_lugar);
+
       })
+
       .slice(0, 2)
+
       .map(function (item) {
+
         return item.nombre_del_lugar;
+
       });
 
     mostrarAviso(
+
       lugarNuevo,
+
       exacto,
+
       similares,
+
       exacto
+
         ? "Ya existe <strong>" + exacto.nombre_del_lugar +
+
           "</strong> en este piso. Selecciona ese lugar en vez de crear otro."
+
         : ""
+
     );
+
   }
 
   if (lugarNuevo) lugarNuevo.addEventListener("input", validarLugar);
+
   if (pisoExistente) pisoExistente.addEventListener("change", validarLugar);
+
   validarLugar();
 
   const container = document.getElementById("objetos-container");
 
   function validarFila(input) {
+
     if (!input) return;
 
     if (input.name && input.name.endsWith("-categoria_nueva")) {
+
       validarNombreSimple(input, categorias);
+
       return;
+
     }
 
     if (input.name && input.name.endsWith("-objeto_nuevo")) {
+
       const valor = normalizar(input.value);
 
       const exacto = objetos.find(function (item) {
+
         return normalizar(item.nombre_del_objeto) === valor;
+
       });
 
       const similares = objetos
+
         .filter(function (item) {
+
           return parecido(valor, item.nombre_del_objeto);
+
         })
+
         .slice(0, 2)
+
         .map(function (item) {
+
           return item.nombre_del_objeto +
+
             " · " + item.objeto_categoria__nombre_de_categoria;
+
         });
 
       mostrarAviso(
+
         input,
+
         exacto,
+
         similares,
+
         exacto
+
           ? "Ya existe <strong>" + exacto.nombre_del_objeto +
+
             "</strong> en <strong>" +
+
             exacto.objeto_categoria__nombre_de_categoria +
+
             "</strong>. Selecciónalo como objeto existente."
+
           : ""
+
       );
+
     }
+
   }
 
   if (container) {
+
     container.addEventListener("input", function (e) {
+
       validarFila(e.target);
+
     });
 
     container.querySelectorAll(
+
       'input[name$="-categoria_nueva"], input[name$="-objeto_nuevo"]'
+
     ).forEach(validarFila);
+
   }
+
+});
+
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const lugarExistente = document.getElementById("id_lugar_existente");
+  const bloque = document.getElementById("bloque-area-comun");
+  const checkbox = document.getElementById("id_lugar_es_area_comun");
+
+  if (!lugarExistente || !bloque || !checkbox) return;
+
+  function actualizarAreaComun() {
+    const usandoExistente = Boolean(lugarExistente.value);
+    bloque.classList.toggle("d-none", usandoExistente);
+    checkbox.disabled = usandoExistente;
+    if (usandoExistente) checkbox.checked = false;
+  }
+
+  lugarExistente.addEventListener("change", actualizarAreaComun);
+  // Recalcular tras cambios en la jerarquía (que pueden limpiar el selector).
+  ["id_piso_existente", "id_tipo_lugar_existente"].forEach(function (id) {
+    const campo = document.getElementById(id);
+    if (campo) campo.addEventListener("change", actualizarAreaComun);
+  });
+
+  actualizarAreaComun();
 });
 </script>
 

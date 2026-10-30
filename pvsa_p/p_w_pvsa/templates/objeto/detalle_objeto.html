@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load pvsa_roles %}
 
 {% block title %}{{ objeto.nombre_del_objeto }} · PVSA{% endblock %}
 
@@ -43,6 +44,7 @@
         Editar
       </a>
 
+      {% if user|es_administrador_pvsa %}
       <a
         href="{% url 'borrar_objeto' objeto_id=objeto.id %}"
         class="btn btn-outline-danger"
@@ -50,6 +52,7 @@
         <i class="bi bi-trash3 me-1"></i>
         Borrar
       </a>
+      {% endif %}
     </div>
   </div>
 

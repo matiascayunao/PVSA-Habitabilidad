@@ -120,7 +120,7 @@ class CrearPiso(ModelForm):
 class CrearLugar(ModelForm):
     class Meta:
         model = Lugar
-        fields = ["nombre_del_lugar", "piso", "lugar_tipo_lugar"]
+        fields = ["nombre_del_lugar","piso","lugar_tipo_lugar","es_area_comun",]
         widgets = {
             "nombre_del_lugar": forms.TextInput(
                 attrs={
@@ -134,6 +134,9 @@ class CrearLugar(ModelForm):
             ),
             "lugar_tipo_lugar": forms.Select(
                 attrs={"class": "form-select"}
+            ),
+            "es_area_comun": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
             ),
         }
 
@@ -667,7 +670,7 @@ class EditarTipoLugar(ModelForm):
 class EditarLugar(ModelForm):
     class Meta:
         model = Lugar
-        fields = ["nombre_del_lugar", "piso", "lugar_tipo_lugar"]
+        fields = ["nombre_del_lugar", "piso", "lugar_tipo_lugar", "es_area_comun"]
         widgets = {
             "nombre_del_lugar": forms.TextInput(
                 attrs={
@@ -680,6 +683,9 @@ class EditarLugar(ModelForm):
             ),
             "lugar_tipo_lugar": forms.Select(
                 attrs={"class": "form-select"}
+            ),
+            "es_area_comun": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
             ),
         }
 
@@ -1128,6 +1134,22 @@ class EstructuraCompletaForm(forms.Form):
             }
         ),
     )
+    lugar_es_area_comun = forms.BooleanField(
+        label="¿Es un área común?",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-check-input",
+            }
+        ),
+        help_text=(
+            "Marca esta opción para baños, comedores, "
+            "vestidores u otros espacios compartidos. "
+            "El QR del nuevo lugar será público inicialmente."
+        ),
+    )
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

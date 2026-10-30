@@ -59,14 +59,26 @@
               {% for field in form %}
                 <div class="col-12">
 
-                  <label class="form-label fw-semibold" for="{{ field.id_for_label }}">
-                    {{ field.label }}
-                    {% if field.field.required %}
-                      <span class="text-danger">*</span>
-                    {% endif %}
-                  </label>
-
-                  {{ field }}
+                  {% if field.name == "es_area_comun" %}
+                    <div class="form-check bg-light border rounded-4 p-3 ps-5">
+                      {{ field }}
+                      <label class="form-check-label fw-semibold" for="{{ field.id_for_label }}">
+                        ¿Es un área común?
+                      </label>
+                      <div class="small text-muted mt-2">
+                        Para baños, comedores, vestidores u otros espacios compartidos.
+                        Cambiar esta clasificación no altera la configuración actual del QR.
+                      </div>
+                    </div>
+                  {% else %}
+                    <label class="form-label fw-semibold" for="{{ field.id_for_label }}">
+                      {{ field.label }}
+                      {% if field.field.required %}
+                        <span class="text-danger">*</span>
+                      {% endif %}
+                    </label>
+                    {{ field }}
+                  {% endif %}
 
                   {% if field.errors %}
                     <div class="field-error mt-2">
@@ -75,7 +87,7 @@
                     </div>
                   {% endif %}
 
-                  {% if field.help_text %}
+                  {% if field.help_text and field.name != "es_area_comun" %}
                     <div class="form-text">
                       {{ field.help_text }}
                     </div>
@@ -167,8 +179,12 @@
 
 .edit-form input[type="checkbox"],
 .edit-form input[type="radio"] {
-  width: auto !important;
-  min-height: auto;
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  margin-top: 3px;
+  cursor: pointer;
 }
 
 .field-error {

@@ -1,4 +1,6 @@
+import hashlib
 import json
+import uuid
 import re
 import unicodedata
 from datetime import date
@@ -58,6 +60,8 @@ from .models import (
     ObjetoLugar,
     HistoricoObjeto,
     TipoLugarObjetoTipico,
+    AccesoQR,
+    ReporteIncidencia,
 )
 
 
@@ -114,6 +118,7 @@ def crear_estructura(request):
                 )
 
             lugar = cd.get("lugar_existente")
+
             if not lugar:
                 lugar = Lugar.objects.create(
                     nombre_del_lugar=(
@@ -121,7 +126,12 @@ def crear_estructura(request):
                     ).strip(),
                     piso=piso,
                     lugar_tipo_lugar=tipo_lugar,
+                    es_area_comun=cd.get(
+                        "lugar_es_area_comun",
+                        False,
+                    ),
                 )
+
 
             for fila in objetos_formset:
                 if not fila.cleaned_data:
@@ -256,41 +266,64 @@ def crear_estructura(request):
 
 
 
+@login_required(login_url="signin")
+@require_http_methods(["GET", "POST"])
 def signup(request):
-    if request.method == "GET":
-        return render(request, "signup.html", {"form": UserCreationForm})
-    if request.POST["password1"] != request.POST["password2"]:
-        return render(
-            request,
-            "signup.html",
-            {"form": UserCreationForm, "error": "Las contraseñas no coinciden"},
+    """
+    Solo los superusuarios pueden crear cuentas.
+
+    Al crear un usuario nuevo, se conserva
+    la sesión del administrador actual.
+    """
+
+    from django.core.exceptions import PermissionDenied
+
+    if not request.user.is_superuser:
+        raise PermissionDenied(
+            "No tienes permisos para crear usuarios."
         )
 
-    try:
-        user = User.objects.create_user(
-            username=request.POST["username"],
-            password=request.POST["password1"],
-        )
-        user.save()
-        login(request, user)
-        return redirect("home")
-    except Exception:
-        return render(
-            request,
-            "signup.html",
-            {"form": UserCreationForm, "error": "Usuario ya existe"},
-        )
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
 
+        if form.is_valid():
+            nuevo_usuario = form.save()
+
+            messages.success(
+                request,
+                f"El usuario '{nuevo_usuario.username}' "
+                "fue creado correctamente."
+            )
+
+            return redirect("signup")
+
+    else:
+        form = UserCreationForm()
+
+    return render(
+        request,
+        "signup.html",
+        {
+            "form": form,
+        },
+    )
 
 def signin(request):
+    from django.utils.http import url_has_allowed_host_and_scheme
+
     if request.method == "GET":
-        return render(request, "signin.html", {"form": AuthenticationForm})
+        return render(
+            request,
+            "signin.html",
+            {"form": AuthenticationForm},
+        )
 
     user = authenticate(
         request,
-        username=request.POST["username"],
-        password=request.POST["password"],
+        username=request.POST.get("username", ""),
+        password=request.POST.get("password", ""),
     )
+
     if user is None:
         return render(
             request,
@@ -302,7 +335,23 @@ def signin(request):
         )
 
     login(request, user)
+
+    # Si el usuario llegó desde un QR privado,
+    # devolverlo a ese QR después de iniciar sesión.
+    destino_qr = request.session.pop(
+        "pvsa_qr_volver_despues_login",
+        None,
+    )
+
+    if destino_qr and url_has_allowed_host_and_scheme(
+        destino_qr,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(destino_qr)
+
     return redirect("home")
+
 
 @login_required
 def signout(request):
@@ -730,18 +779,100 @@ def lista_lugares(request):
     )
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def detalle_lugar(request, lugar_id):
+    from django.core.exceptions import PermissionDenied
+
     lugar = get_object_or_404(Lugar, pk=lugar_id)
+
+    # --------------------------------------------------
+    # CONFIGURACIÓN DEL QR
+    # --------------------------------------------------
+
+    if request.method == "POST":
+
+        # Esta página solo procesa el formulario de QR.
+        if request.POST.get("accion") != "configurar_qr":
+            return HttpResponse(
+                "Acción no válida.",
+                status=400,
+            )
+
+        # Solo Superadmin y Mini-Admin.
+        puede_configurar_qr = (
+            request.user.is_superuser
+            or request.user.groups.filter(
+                name="Administrador"
+            ).exists()
+        )
+
+        if not puede_configurar_qr:
+            raise PermissionDenied(
+                "No tienes permisos para configurar este QR."
+            )
+
+        # Validar los valores recibidos.
+        visibilidad = request.POST.get(
+            "visibilidad_qr", ""
+        )
+
+        if visibilidad not in ("publico", "privado"):
+            return HttpResponse(
+                "Visibilidad QR no válida.",
+                status=400,
+            )
+
+        qr_activo_valor = request.POST.get("qr_activo")
+
+        if qr_activo_valor not in (None, "1"):
+            return HttpResponse(
+                "Estado QR no válido.",
+                status=400,
+            )
+
+        # Guardar únicamente la configuración del QR.
+        lugar.qr_activo = qr_activo_valor == "1"
+        lugar.visibilidad_qr = visibilidad
+
+        lugar.save(
+            update_fields=[
+                "qr_activo",
+                "visibilidad_qr",
+            ]
+        )
+
+        messages.success(
+            request,
+            "La configuración del QR se guardó correctamente."
+        )
+
+        return redirect(
+            "detalle_lugar",
+            lugar_id=lugar.id,
+        )
+
+    # --------------------------------------------------
+    # DETALLE NORMAL DEL LUGAR
+    # --------------------------------------------------
+
     objetos = (
-        ObjetoLugar.objects.select_related("tipo_de_objeto", "tipo_de_objeto__objeto")
+        ObjetoLugar.objects.select_related(
+            "tipo_de_objeto",
+            "tipo_de_objeto__objeto",
+        )
         .filter(lugar=lugar)
         .order_by("-fecha")
     )
+
     return render(
         request,
         "lugar/detalle_lugar.html",
-        {"lugar": lugar, "objetos": objetos},
+        {
+            "lugar": lugar,
+            "objetos": objetos,
+        },
     )
+
 
 
 @login_required
@@ -818,23 +949,64 @@ def crear_lugar(request):
 @login_required
 def editar_lugar(request, lugar_id):
     lugar = get_object_or_404(Lugar, pk=lugar_id)
-    cancel_url = reverse("detalle_lugar", kwargs={"lugar_id": lugar.id})
 
-    if request.method == "GET":
-        return render(
-            request,
-            "editar_generico.html",
-            {
-                "titulo": "Editar lugar",
-                "form": EditarLugar(instance=lugar),
-                "cancel_url": cancel_url,
-            },
+    cancel_url = reverse(
+        "detalle_lugar",
+        kwargs={"lugar_id": lugar.id},
+    )
+
+    # Solo Superadmin y Mini-Admin pueden clasificar
+    # lugares y cambiar indirectamente sus QR.
+    puede_clasificar = (
+        request.user.is_superuser
+        or request.user.groups.filter(
+            name="Administrador"
+        ).exists()
+    )
+
+    if request.method == "POST":
+        form = EditarLugar(request.POST, instance=lugar)
+    else:
+        form = EditarLugar(instance=lugar)
+
+    # Los demás usuarios no pueden modificar
+    # la clasificación, ni siquiera enviando
+    # el campo manualmente desde el navegador.
+    if not puede_clasificar:
+        form.fields.pop("es_area_comun", None)
+
+    if request.method == "POST" and form.is_valid():
+
+        # Consultar el valor guardado en la base de datos
+        # antes de aplicar los cambios del formulario.
+        era_area_comun = (
+            Lugar.objects
+            .values_list("es_area_comun", flat=True)
+            .get(pk=lugar.pk)
         )
 
-    form = EditarLugar(request.POST, instance=lugar)
-    if form.is_valid():
-        form.save()
-        return redirect("detalle_lugar", lugar_id=lugar.id)
+        lugar_actualizado = form.save(commit=False)
+
+        # Sincronizar QR únicamente si un administrador
+        # modificó la clasificación del lugar.
+        if (
+            puede_clasificar
+            and era_area_comun != lugar_actualizado.es_area_comun
+        ):
+            lugar_actualizado.visibilidad_qr = (
+                "publico"
+                if lugar_actualizado.es_area_comun
+                else "privado"
+            )
+
+            lugar_actualizado.qr_activo = True
+
+        lugar_actualizado.save()
+
+        return redirect(
+            "detalle_lugar",
+            lugar_id=lugar_actualizado.id,
+        )
 
     return render(
         request,
@@ -3394,8 +3566,9 @@ def qr_lugar(request, lugar_id):
 
     lugar = get_object_or_404(Lugar, pk=lugar_id)
 
+    # El QR enlaza a la consulta publica, no al detalle interno protegido.
     url = request.build_absolute_uri(
-        reverse("detalle_lugar", kwargs={"lugar_id": lugar.id})
+        reverse("consulta_qr", kwargs={"token": str(lugar.qr_token)})
     )
 
     img = qrcode.make(url)
@@ -3589,3 +3762,237 @@ def ajax_filtros_dependientes(request):
         ],
     }
     return JsonResponse(data)
+
+
+@require_http_methods(["GET", "POST"])
+def consulta_qr(request, token):
+    """
+    Acceso mediante QR.
+
+    Privado:
+        Requiere iniciar sesión y tener autorización.
+
+    Público:
+        Permite enviar reportes sin cuenta.
+        No muestra información interna del inventario.
+    """
+
+    from django.core.cache import cache
+    from django.http import HttpResponseNotAllowed
+    from django.utils import timezone
+    from zoneinfo import ZoneInfo
+
+    from .reporte_forms import ReportePublicoForm
+
+    # --------------------------------------------------
+    # IDENTIFICAR QR
+    # --------------------------------------------------
+
+    token_texto = str(token or "").strip()[:256]
+
+    token_huella = hashlib.sha256(
+        token_texto.lower().encode("utf-8")
+    ).hexdigest()
+
+    try:
+        token_uuid = uuid.UUID(token_texto)
+    except (AttributeError, TypeError, ValueError):
+        token_uuid = None
+
+    lugar = None
+
+    if token_uuid is not None:
+        lugar = (
+            Lugar.objects
+            .filter(qr_token=token_uuid)
+            .only(
+                "id",
+                "nombre_del_lugar",
+                "qr_token",
+                "qr_activo",
+                "visibilidad_qr",
+            )
+            .first()
+        )
+
+    # --------------------------------------------------
+    # REGISTRAR ACCESO
+    # --------------------------------------------------
+
+    if lugar is None:
+        resultado = AccesoQR.Resultado.INVALIDO
+
+    elif not lugar.qr_activo:
+        resultado = AccesoQR.Resultado.DESACTIVADO
+
+    else:
+        resultado = AccesoQR.Resultado.PERMITIDO
+
+    AccesoQR.objects.create(
+        lugar=lugar,
+        ip=request.META.get("REMOTE_ADDR") or None,
+        user_agent=(
+            request.META.get("HTTP_USER_AGENT") or ""
+        )[:512],
+        token_huella=token_huella,
+        resultado=resultado,
+    )
+
+    if resultado != AccesoQR.Resultado.PERMITIDO:
+        return HttpResponse(
+            "Este código QR no está disponible.",
+            status=404,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    # --------------------------------------------------
+    # QR PRIVADO
+    # --------------------------------------------------
+
+    if lugar.visibilidad_qr == "privado":
+
+        if request.method != "GET":
+            return HttpResponseNotAllowed(["GET"])
+
+        if not request.user.is_authenticated:
+
+            request.session[
+                "pvsa_qr_volver_despues_login"
+            ] = request.path
+
+            return redirect("signin")
+
+        puede_acceder = (
+            request.user.is_superuser
+            or request.user.groups.filter(
+                name="Administrador"
+            ).exists()
+        )
+
+        if not puede_acceder:
+            return HttpResponse(
+                "No tienes permisos para consultar este lugar.",
+                status=403,
+                content_type="text/plain; charset=utf-8",
+            )
+
+        return redirect(
+            "detalle_lugar",
+            lugar_id=lugar.pk,
+        )
+
+    # --------------------------------------------------
+    # VISIBILIDAD DESCONOCIDA
+    # --------------------------------------------------
+
+    if lugar.visibilidad_qr != "publico":
+        return HttpResponse(
+            "Este código QR no está disponible.",
+            status=404,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    # --------------------------------------------------
+    # QR PÚBLICO: PROCESAR REPORTE
+    # --------------------------------------------------
+
+    if request.method == "POST":
+
+        form = ReportePublicoForm(
+            request.POST,
+            request.FILES,
+        )
+
+        # Campo trampa para envíos automáticos.
+        if request.POST.get("sitio_web", "").strip():
+            return HttpResponse(
+                "Solicitud no válida.",
+                status=400,
+            )
+
+        if form.is_valid():
+
+            # Límite básico para evitar envíos repetidos.
+            origen_ip = request.META.get(
+                "REMOTE_ADDR", ""
+            )
+
+            llave = "pvsa_qr_reporte_" + hashlib.sha256(
+                f"{lugar.pk}|{origen_ip}".encode("utf-8")
+            ).hexdigest()
+
+            if not cache.add(
+                llave,
+                "1",
+                timeout=30,
+            ):
+                form.add_error(
+                    None,
+                    "Espera unos segundos antes de enviar "
+                    "otro reporte.",
+                )
+
+            else:
+
+                try:
+                    reporte = form.save(commit=False)
+
+                    reporte.lugar = lugar
+                    reporte.origen = (
+                        ReporteIncidencia.Origen.QR_PUBLICO
+                    )
+                    reporte.reportado_por = None
+
+                    opcion = form.cleaned_data[
+                        "elemento_opcion"
+                    ]
+
+                    if opcion == "otro":
+                        reporte.elemento_reportado = (
+                            form.cleaned_data[
+                                "otro_elemento"
+                            ].strip()
+                        )
+                    else:
+                        reporte.elemento_reportado = opcion
+
+                    # Validación y guardado.
+                    reporte.full_clean()
+                    reporte.save()
+
+                except Exception:
+                    cache.delete(llave)
+                    raise
+
+                # Mostrar la recepción en horario chileno.
+                fecha_chile = timezone.localtime(
+                    reporte.fecha_reporte,
+                    ZoneInfo("America/Santiago"),
+                ).strftime("%d/%m/%Y a las %H:%M:%S")
+
+                messages.success(
+                    request,
+                    f"Reporte #{reporte.pk} recibido "
+                    f"el {fecha_chile} (hora de Chile).",
+                )
+
+                return redirect(
+                    "consulta_qr",
+                    token=str(lugar.qr_token),
+                )
+
+    else:
+        form = ReportePublicoForm()
+
+    # --------------------------------------------------
+    # MOSTRAR FORMULARIO PÚBLICO
+    # --------------------------------------------------
+
+    return render(
+        request,
+        "consulta_qr.html",
+        {
+            "nombre_lugar": lugar.nombre_del_lugar,
+            "form": form,
+        },
+    )

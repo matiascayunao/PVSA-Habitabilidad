@@ -1,8 +1,11 @@
-import nested_admin
+import uuid
 
+import nested_admin
 from django import forms
 from django.contrib import admin
-
+from django.db import transaction
+from django.urls import reverse
+from django.utils.html import format_html
 from .models import (
     Sector,
     Ubicacion,
@@ -15,41 +18,40 @@ from .models import (
     TipoLugarObjetoTipico,
     ObjetoLugar,
     HistoricoObjeto,
+    AccesoQR,
 )
-
 
 # =========================================================
 # CONFIGURACIÓN GENERAL DEL ADMIN
-# =========================================================
 
+# =========================================================
 admin.site.site_header = "Administración PVSA"
 admin.site.site_title = "PVSA"
 admin.site.index_title = "Panel de administración"
 
-
 # =========================================================
 # FUNCIONES AUXILIARES
+
 # =========================================================
+
 
 def texto_importancia(valor):
     if valor == 3:
         return "Alta / Crítica"
-
     if valor == 2:
         return "Media"
-
     return "Baja"
-
 
 # =========================================================
 # HISTÓRICO INLINE
+
 # =========================================================
+
 
 class HistoricoObjetoInline(nested_admin.NestedTabularInline):
     model = HistoricoObjeto
     extra = 0
     can_delete = False
-
     fields = (
         "cantidad_anterior",
         "cantidad_mala_anterior",
@@ -60,25 +62,23 @@ class HistoricoObjetoInline(nested_admin.NestedTabularInline):
         "detalle_anterior",
         "fecha_anterior",
     )
-
     readonly_fields = fields
 
     def has_add_permission(self, request, obj=None):
         return False
 
-
 # =========================================================
 # OBJETO LUGAR INLINE
+
 # =========================================================
+
 
 class ObjetoLugarInline(nested_admin.NestedTabularInline):
     model = ObjetoLugar
     extra = 0
-
     inlines = [
         HistoricoObjetoInline,
     ]
-
     fields = (
         "tipo_de_objeto",
         "cantidad",
@@ -92,14 +92,12 @@ class ObjetoLugarInline(nested_admin.NestedTabularInline):
         "detalle",
         "fecha",
     )
-
     readonly_fields = (
         "cantidad_buena_admin",
         "operatividad_objeto_admin",
         "estado_calculado_admin",
         "fecha",
     )
-
     autocomplete_fields = (
         "tipo_de_objeto",
     )
@@ -108,46 +106,40 @@ class ObjetoLugarInline(nested_admin.NestedTabularInline):
     def cantidad_buena_admin(self, obj):
         if obj and obj.pk:
             return obj.cantidad_buena
-
         return "-"
 
     @admin.display(description="Operatividad")
     def operatividad_objeto_admin(self, obj):
         if obj and obj.pk:
             return f"{obj.operatividad_objeto}%"
-
         return "-"
 
     @admin.display(description="Condición")
     def estado_calculado_admin(self, obj):
         if not obj or not obj.pk:
             return "-"
-
         return obj.get_estado_display()
-
 
 # =========================================================
 # LUGAR INLINE
+
 # =========================================================
+
 
 class LugarInline(nested_admin.NestedStackedInline):
     model = Lugar
     extra = 0
-
     inlines = [
         ObjetoLugarInline,
     ]
-
     fields = (
         "nombre_del_lugar",
         "lugar_tipo_lugar",
         "operatividad_lugar_admin",
     )
-
     readonly_fields = (
         "operatividad_lugar_admin",
     )
-
     autocomplete_fields = (
         "lugar_tipo_lugar",
     )
@@ -156,18 +148,17 @@ class LugarInline(nested_admin.NestedStackedInline):
     def operatividad_lugar_admin(self, obj):
         if obj and obj.pk:
             return f"{obj.operatividad_lugar}%"
-
         return "-"
-
 
 # =========================================================
 # PISO / UBICACIÓN / SECTOR
+
 # =========================================================
+
 
 class PisoInline(nested_admin.NestedStackedInline):
     model = Piso
     extra = 0
-
     inlines = [
         LugarInline,
     ]
@@ -176,11 +167,9 @@ class PisoInline(nested_admin.NestedStackedInline):
 class UbicacionInline(nested_admin.NestedStackedInline):
     model = Ubicacion
     extra = 0
-
     inlines = [
         PisoInline,
     ]
-
     fields = (
         "ubicacion",
     )
@@ -190,24 +179,22 @@ class SectorAdmin(nested_admin.NestedModelAdmin):
     inlines = [
         UbicacionInline,
     ]
-
     list_display = (
         "sector",
     )
-
     search_fields = (
         "sector",
     )
 
-
 # =========================================================
 # CATEGORÍA / OBJETO / TIPO OBJETO
+
 # =========================================================
+
 
 class TipoObjetoInline(nested_admin.NestedTabularInline):
     model = TipoObjeto
     extra = 0
-
     fields = (
         "marca",
         "material",
@@ -217,11 +204,9 @@ class TipoObjetoInline(nested_admin.NestedTabularInline):
 class ObjetoInline(nested_admin.NestedStackedInline):
     model = Objeto
     extra = 0
-
     inlines = [
         TipoObjetoInline,
     ]
-
     fields = (
         "nombre_del_objeto",
     )
@@ -231,31 +216,28 @@ class CategoriaObjetoAdmin(nested_admin.NestedModelAdmin):
     inlines = [
         ObjetoInline,
     ]
-
     list_display = (
         "nombre_de_categoria",
     )
-
     search_fields = (
         "nombre_de_categoria",
     )
 
-
 # =========================================================
 # TIPO DE LUGAR Y OBJETOS TÍPICOS
+
 # =========================================================
+
 
 class TipoLugarObjetoTipicoInline(admin.TabularInline):
     model = TipoLugarObjetoTipico
     extra = 0
-
     fields = (
         "tipo_objeto",
         "importancia",
         "orden",
         "activo",
     )
-
     autocomplete_fields = (
         "tipo_objeto",
     )
@@ -265,12 +247,10 @@ class TipoLugarAdmin(admin.ModelAdmin):
     inlines = [
         TipoLugarObjetoTipicoInline,
     ]
-
     list_display = (
         "tipo_de_lugar",
         "cantidad_tipicos_admin",
     )
-
     search_fields = (
         "tipo_de_lugar",
     )
@@ -279,30 +259,30 @@ class TipoLugarAdmin(admin.ModelAdmin):
     def cantidad_tipicos_admin(self, obj):
         return obj.tipicos.count()
 
-
 # =========================================================
 # ADMIN INDIVIDUAL: UBICACIÓN
+
 # =========================================================
+
 
 class UbicacionAdmin(admin.ModelAdmin):
     list_display = (
         "ubicacion",
         "sector",
     )
-
     list_filter = (
         "sector",
     )
-
     search_fields = (
         "ubicacion",
         "sector__sector",
     )
 
-
 # =========================================================
 # ADMIN INDIVIDUAL: PISO
+
 # =========================================================
+
 
 class PisoAdmin(admin.ModelAdmin):
     list_display = (
@@ -310,12 +290,10 @@ class PisoAdmin(admin.ModelAdmin):
         "ubicacion",
         "sector_admin",
     )
-
     list_filter = (
         "ubicacion__sector",
         "ubicacion",
     )
-
     search_fields = (
         "=piso",
         "ubicacion__ubicacion",
@@ -326,16 +304,16 @@ class PisoAdmin(admin.ModelAdmin):
     def sector_admin(self, obj):
         return obj.ubicacion.sector
 
-
 # =========================================================
 # ADMIN INDIVIDUAL: LUGAR
+
 # =========================================================
+
 
 class LugarAdmin(nested_admin.NestedModelAdmin):
     inlines = [
         ObjetoLugarInline,
     ]
-
     list_display = (
         "nombre_del_lugar",
         "tipo_lugar_admin",
@@ -343,32 +321,123 @@ class LugarAdmin(nested_admin.NestedModelAdmin):
         "ubicacion_admin",
         "sector_admin",
         "operatividad_lugar_admin",
+        "qr_estado_admin",
     )
-
     list_filter = (
         "lugar_tipo_lugar",
         "piso__ubicacion__sector",
         "piso__ubicacion",
         "piso",
+        "qr_activo",
     )
-
     search_fields = (
         "nombre_del_lugar",
         "lugar_tipo_lugar__tipo_de_lugar",
         "piso__ubicacion__ubicacion",
         "piso__ubicacion__sector__sector",
     )
-
     readonly_fields = (
         "operatividad_lugar_admin",
     )
-
     fields = (
         "nombre_del_lugar",
         "piso",
         "lugar_tipo_lugar",
         "operatividad_lugar_admin",
     )
+
+    # QR: los tokens no son campos editables de los formularios habituales.
+    # Únicamente los superusuarios pueden administrar los enlaces públicos.
+    actions = (
+        "activar_qr_seleccionados",
+        "desactivar_qr_seleccionados",
+        "regenerar_qr_seleccionados",
+    )
+
+    def has_gestionar_qr_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def get_fields(self, request, obj=None):
+        campos = list(super().get_fields(request, obj))
+        if request.user.is_superuser:
+            campos.extend(("qr_estado_admin", "qr_enlace_admin"))
+        return campos
+
+    def get_readonly_fields(self, request, obj=None):
+        campos = list(super().get_readonly_fields(request, obj))
+        if request.user.is_superuser:
+            campos.extend(("qr_estado_admin", "qr_enlace_admin"))
+        return campos
+
+    @admin.display(description="QR público activo", boolean=True)
+    def qr_estado_admin(self, obj):
+        if obj is None or obj.pk is None:
+            return None
+        return obj.qr_activo
+
+    @admin.display(description="Enlace de consulta QR")
+    def qr_enlace_admin(self, obj):
+        if obj is None or obj.pk is None:
+            return "Disponible después de guardar el lugar."
+        ruta = reverse("consulta_qr", kwargs={"token": str(obj.qr_token)})
+        if not obj.qr_activo:
+            return format_html(
+                "{} — QR desactivado. Actívalo desde la lista de lugares.", ruta
+            )
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            ruta,
+            ruta,
+        )
+
+    @admin.action(
+        description="QR: activar consultas para los lugares seleccionados",
+        permissions=["gestionar_qr"],
+    )
+    def activar_qr_seleccionados(self, request, queryset):
+        actualizados = 0
+        with transaction.atomic():
+            for lugar in queryset.select_related("piso__ubicacion").iterator():
+                if not lugar.qr_activo:
+                    lugar.qr_activo = True
+                    lugar.save(update_fields=["qr_activo"])
+                    self.log_change(request, lugar, "Activó la consulta pública QR.")
+                    actualizados += 1
+        self.message_user(request, f"QR activados: {actualizados}.")
+
+    @admin.action(
+        description="QR: desactivar consultas para los lugares seleccionados",
+        permissions=["gestionar_qr"],
+    )
+    def desactivar_qr_seleccionados(self, request, queryset):
+        actualizados = 0
+        with transaction.atomic():
+            for lugar in queryset.select_related("piso__ubicacion").iterator():
+                if lugar.qr_activo:
+                    lugar.qr_activo = False
+                    lugar.save(update_fields=["qr_activo"])
+                    self.log_change(request, lugar, "Desactivó la consulta pública QR.")
+                    actualizados += 1
+        self.message_user(request, f"QR desactivados: {actualizados}.")
+
+    @admin.action(
+        description="QR: REGENERAR tokens (invalida los QR anteriores)",
+        permissions=["gestionar_qr"],
+    )
+    def regenerar_qr_seleccionados(self, request, queryset):
+        actualizados = 0
+        with transaction.atomic():
+            for lugar in queryset.select_related("piso__ubicacion").iterator():
+                # UUID distinto para cada lugar; el QR anterior deja de servir.
+                lugar.qr_token = uuid.uuid4()
+                lugar.save(update_fields=["qr_token"])
+                self.log_change(request, lugar, "Regeneró el token QR público.")
+                actualizados += 1
+        self.message_user(
+            request,
+            f"Tokens QR regenerados: {actualizados}. "
+            "Los anteriores ya no sirven; el estado activo/inactivo no cambió.",
+        )
 
     @admin.display(description="Tipo de lugar")
     def tipo_lugar_admin(self, obj):
@@ -386,33 +455,32 @@ class LugarAdmin(nested_admin.NestedModelAdmin):
     def operatividad_lugar_admin(self, obj):
         if obj and obj.pk:
             return f"{obj.operatividad_lugar}%"
-
         return "-"
-
 
 # =========================================================
 # ADMIN INDIVIDUAL: OBJETO
+
 # =========================================================
+
 
 class ObjetoAdmin(admin.ModelAdmin):
     list_display = (
         "nombre_del_objeto",
         "objeto_categoria",
     )
-
     list_filter = (
         "objeto_categoria",
     )
-
     search_fields = (
         "nombre_del_objeto",
         "objeto_categoria__nombre_de_categoria",
     )
 
-
 # =========================================================
 # ADMIN INDIVIDUAL: TIPO OBJETO
+
 # =========================================================
+
 
 class TipoObjetoAdmin(admin.ModelAdmin):
     list_display = (
@@ -421,13 +489,11 @@ class TipoObjetoAdmin(admin.ModelAdmin):
         "marca",
         "material",
     )
-
     list_filter = (
         "objeto__objeto_categoria",
         "marca",
         "material",
     )
-
     search_fields = (
         "objeto__nombre_del_objeto",
         "objeto__objeto_categoria__nombre_de_categoria",
@@ -439,16 +505,16 @@ class TipoObjetoAdmin(admin.ModelAdmin):
     def categoria_admin(self, obj):
         return obj.objeto.objeto_categoria
 
-
 # =========================================================
 # ADMIN INDIVIDUAL: OBJETO LUGAR
+
 # =========================================================
+
 
 class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
     inlines = [
         HistoricoObjetoInline,
     ]
-
     list_display = (
         "objeto_admin",
         "lugar",
@@ -462,7 +528,6 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
         "estado_calculado_admin",
         "fecha",
     )
-
     list_filter = (
         "estado",
         "importancia",
@@ -471,7 +536,6 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
         "lugar__piso__ubicacion",
         "tipo_de_objeto__objeto__objeto_categoria",
     )
-
     search_fields = (
         "tipo_de_objeto__objeto__nombre_del_objeto",
         "tipo_de_objeto__marca",
@@ -481,19 +545,16 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
         "lugar__piso__ubicacion__sector__sector",
         "detalle",
     )
-
     autocomplete_fields = (
         "lugar",
         "tipo_de_objeto",
     )
-
     readonly_fields = (
         "cantidad_buena_admin",
         "operatividad_objeto_admin",
         "estado_calculado_admin",
         "fecha",
     )
-
     fieldsets = (
         (
             "Objeto y lugar",
@@ -529,7 +590,6 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
             },
         ),
     )
-
     date_hierarchy = "fecha"
 
     @admin.display(description="Objeto")
@@ -540,7 +600,6 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
             and obj.tipo_de_objeto.objeto
         ):
             return obj.tipo_de_objeto.objeto.nombre_del_objeto
-
         return "-"
 
     @admin.display(description="Buenas")
@@ -559,10 +618,11 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
     def estado_calculado_admin(self, obj):
         return obj.get_estado_display()
 
-
 # =========================================================
 # FORMULARIO ADMIN DEL HISTÓRICO
+
 # =========================================================
+
 
 class HistoricoObjetoAdminForm(forms.ModelForm):
     importancia_anterior = forms.TypedChoiceField(
@@ -572,56 +632,46 @@ class HistoricoObjetoAdminForm(forms.ModelForm):
         choices=ObjetoLugar.IMPORTANCIA,
         widget=forms.Select,
     )
-
     estado_anterior = forms.ChoiceField(
         label="Condición anterior",
         required=True,
         choices=ObjetoLugar.ESTADO,
         widget=forms.Select,
     )
-
     class Meta:
         model = HistoricoObjeto
         fields = "__all__"
 
     def clean(self):
         cleaned = super().clean()
-
         cantidad = (
             cleaned.get("cantidad_anterior")
             or 0
         )
-
         cantidad_mala = (
             cleaned.get("cantidad_mala_anterior")
             or 0
         )
-
         cantidad_pendiente = (
             cleaned.get("cantidad_pendiente_anterior")
             or 0
         )
-
         minimo_operativo = (
             cleaned.get("minimo_operativo_anterior")
             or 1
         )
-
         if cantidad <= 0:
             raise forms.ValidationError(
                 "La cantidad anterior debe ser mayor a 0."
             )
-
         if cantidad_mala < 0:
             raise forms.ValidationError(
                 "Las unidades malas no pueden ser negativas."
             )
-
         if cantidad_pendiente < 0:
             raise forms.ValidationError(
                 "Las unidades pendientes no pueden ser negativas."
             )
-
         if (
             cantidad_mala
             + cantidad_pendiente
@@ -631,28 +681,25 @@ class HistoricoObjetoAdminForm(forms.ModelForm):
                 "La suma de unidades malas y pendientes "
                 "no puede superar la cantidad total."
             )
-
         if minimo_operativo < 1:
             raise forms.ValidationError(
                 "El mínimo operativo debe ser al menos 1."
             )
-
         if minimo_operativo > cantidad:
             raise forms.ValidationError(
                 "El mínimo operativo no puede ser mayor "
                 "que la cantidad total."
             )
-
         return cleaned
-
 
 # =========================================================
 # ADMIN INDIVIDUAL: HISTÓRICO
+
 # =========================================================
+
 
 class HistoricoObjetoAdmin(admin.ModelAdmin):
     form = HistoricoObjetoAdminForm
-
     fieldsets = (
         (
             "Objeto asociado",
@@ -685,7 +732,6 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
             },
         ),
     )
-
     list_display = (
         "objeto_admin",
         "lugar_admin",
@@ -697,7 +743,6 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
         "estado_anterior_admin",
         "fecha_anterior",
     )
-
     list_filter = (
         "estado_anterior",
         "importancia_anterior",
@@ -705,7 +750,6 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
         "objeto_del_lugar__lugar__piso__ubicacion__sector",
         "objeto_del_lugar__lugar__piso__ubicacion",
     )
-
     search_fields = (
         "objeto_del_lugar__tipo_de_objeto__objeto__nombre_del_objeto",
         "objeto_del_lugar__tipo_de_objeto__marca",
@@ -713,17 +757,14 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
         "objeto_del_lugar__lugar__nombre_del_lugar",
         "detalle_anterior",
     )
-
     autocomplete_fields = (
         "objeto_del_lugar",
     )
-
     date_hierarchy = "fecha_anterior"
 
     @admin.display(description="Objeto")
     def objeto_admin(self, obj):
         objeto_lugar = obj.objeto_del_lugar
-
         if (
             objeto_lugar
             and objeto_lugar.tipo_de_objeto
@@ -735,7 +776,6 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
                 .objeto
                 .nombre_del_objeto
             )
-
         return "-"
 
     @admin.display(description="Lugar")
@@ -745,7 +785,6 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
             and obj.objeto_del_lugar.lugar
         ):
             return obj.objeto_del_lugar.lugar
-
         return "-"
 
     @admin.display(description="Importancia anterior")
@@ -758,61 +797,120 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
     def estado_anterior_admin(self, obj):
         return obj.get_estado_anterior_display()
 
+# =========================================================
+# ACCESOS QR: AUDITORÍA DE SOLO LECTURA
+# =========================================================
+
+
+class AccesoQRAdmin(admin.ModelAdmin):
+    list_display = (
+        "fecha_hora",
+        "lugar_admin",
+        "ip",
+        "resultado",
+        "navegador_admin",
+    )
+    list_filter = ("resultado", "fecha_hora")
+    search_fields = (
+        "lugar__nombre_del_lugar",
+        "ip",
+        "user_agent",
+        "token_huella",
+    )
+    fields = (
+        "fecha_hora",
+        "lugar",
+        "ip",
+        "user_agent",
+        "token_huella",
+        "resultado",
+    )
+    readonly_fields = fields
+    date_hierarchy = "fecha_hora"
+    list_per_page = 50
+    ordering = ("-fecha_hora", "-pk")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "lugar__piso__ubicacion"
+        )
+
+    # Por ahora se reserva a superusuarios. Cuando existan roles,
+    # podemos reemplazarlo por un permiso de grupo específico.
+    def has_module_permission(self, request):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_active and request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Lugar")
+    def lugar_admin(self, obj):
+        return obj.lugar if obj.lugar_id is not None else "Sin lugar asociado"
+
+    @admin.display(description="Navegador / dispositivo")
+    def navegador_admin(self, obj):
+        agente = obj.user_agent or "-"
+        return agente[:80] + ("…" if len(agente) > 80 else "")
+
 
 # =========================================================
 # REGISTROS
-# =========================================================
 
+# =========================================================
 admin.site.register(
     Sector,
     SectorAdmin,
 )
-
 admin.site.register(
     Ubicacion,
     UbicacionAdmin,
 )
-
 admin.site.register(
     Piso,
     PisoAdmin,
 )
-
 admin.site.register(
     TipoLugar,
     TipoLugarAdmin,
 )
-
 admin.site.register(
     Lugar,
     LugarAdmin,
 )
-
 admin.site.register(
     CategoriaObjeto,
     CategoriaObjetoAdmin,
 )
-
 admin.site.register(
     Objeto,
     ObjetoAdmin,
 )
-
 admin.site.register(
     TipoObjeto,
     TipoObjetoAdmin,
 )
-
 admin.site.register(
     TipoLugarObjetoTipico,
 )
-
 admin.site.register(
     ObjetoLugar,
     ObjetoLugarAdmin,
 )
-
 admin.site.register(
     HistoricoObjeto,
     HistoricoObjetoAdmin,
+)
+
+admin.site.register(
+    AccesoQR,
+    AccesoQRAdmin,
 )

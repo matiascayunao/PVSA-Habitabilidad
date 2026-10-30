@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+
+{% load tz %}
+
+{% block title %}Incidencias · PVSA{% endblock %}
+
+{% block content %}
+
+{% timezone "America/Santiago" %}
+
+<div class="py-2 py-lg-3">
+
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+
+    <div>
+
+      <div class="text-muted small mb-1">
+
+        PVSA · Seguimiento de problemas
+
+      </div>
+
+      <h1 class="h3 fw-bold mb-2">
+
+        <i class="bi bi-clipboard2-pulse me-2"></i>
+
+        Gestión de incidencias
+
+      </h1>
+
+      <p class="text-muted mb-0">
+
+        Reportes recibidos desde códigos QR públicos y usuarios internos.
+
+      </p>
+
+    </div>
+
+    <span class="badge text-bg-light border px-3 py-2">
+
+      {{ pagina.paginator.count }} reportes encontrados
+
+    </span>
+
+  </div>
+
+  <!-- FILTROS -->
+
+  <div class="card border-0 rounded-4 shadow-sm mb-4">
+
+    <div class="card-body p-3 p-md-4">
+
+      <h2 class="h6 fw-bold mb-3">
+
+        <i class="bi bi-funnel me-1"></i>
+
+        Filtrar incidencias
+
+      </h2>
+
+      <form method="get" class="row g-3">
+
+        <div class="col-12 col-md-6 col-xl-3">
+
+          <label for="filtroSector" class="form-label small fw-semibold">
+
+            Sector
+
+          </label>
+
+          <select class="form-select" name="sector" id="filtroSector">
+
+            <option value="">Todos los sectores</option>
+
+            {% for sector in sectores %}
+
+              <option
+
+                value="{{ sector.pk }}"
+
+                {% if filtro_sector == sector.pk %}selected{% endif %}
+
+              >
+
+                {{ sector.sector }}
+
+              </option>
+
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+
+          <label for="filtroUbicacion" class="form-label small fw-semibold">
+
+            Ubicación
+
+          </label>
+
+          <select class="form-select" name="ubicacion" id="filtroUbicacion">
+
+            <option value="">Todas las ubicaciones</option>
+
+            {% for ubicacion in ubicaciones %}
+
+              <option
+
+                value="{{ ubicacion.pk }}"
+
+                {% if filtro_ubicacion == ubicacion.pk %}selected{% endif %}
+
+              >
+
+                {{ ubicacion.ubicacion }}
+
+              </option>
+
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+
+          <label for="filtroLugar" class="form-label small fw-semibold">
+
+            Lugar
+
+          </label>
+
+          <select class="form-select" name="lugar" id="filtroLugar">
+
+            <option value="">Todos los lugares</option>
+
+            {% for lugar in lugares %}
+
+              <option
+
+                value="{{ lugar.pk }}"
+
+                {% if filtro_lugar == lugar.pk %}selected{% endif %}
+
+              >
+
+                {{ lugar.nombre_del_lugar }}
+
+              </option>
+
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+
+          <label for="filtroEstado" class="form-label small fw-semibold">
+
+            Estado
+
+          </label>
+
+          <select class="form-select" name="estado" id="filtroEstado">
+
+            <option value="">Todos los estados</option>
+
+            {% for valor, etiqueta in estados %}
+
+              <option
+
+                value="{{ valor }}"
+
+                {% if filtro_estado == valor %}selected{% endif %}
+
+              >
+
+                {{ etiqueta }}
+
+              </option>
+
+            {% endfor %}
+
+          </select>
+
+        </div>
+
+        <div class="col-12 d-flex flex-wrap gap-2">
+
+          <button type="submit" class="btn pvsa-btn">
+
+            <i class="bi bi-search me-1"></i>
+
+            Buscar
+
+          </button>
+
+          <a href="{% url 'lista_incidencias' %}"
+
+             class="btn btn-outline-secondary">
+
+            Limpiar filtros
+
+          </a>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  <!-- REPORTES -->
+
+  <div class="card border-0 rounded-4 shadow-sm overflow-hidden">
+
+    <div class="card-header bg-white border-0 p-3 p-md-4">
+
+      <h2 class="h5 fw-bold mb-1">Reportes registrados</h2>
+
+      <div class="text-muted small">
+
+        Selecciona uno para revisar sus detalles y cambiar su estado.
+
+      </div>
+
+    </div>
+
+    {% if pagina.object_list %}
+
+      <!-- ESCRITORIO -->
+
+      <div class="table-responsive d-none d-lg-block">
+
+        <table class="table table-hover align-middle mb-0">
+
+          <thead class="table-light">
+
+            <tr>
+
+              <th class="ps-4">N.º</th>
+
+              <th>Fecha</th>
+
+              <th>Lugar</th>
+
+              <th>Elemento / Problema</th>
+
+              <th>Estado</th>
+
+              <th>Foto</th>
+
+              <th class="text-end pe-4">Acción</th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {% for reporte in pagina %}
+
+              <tr>
+
+                <td class="ps-4 fw-bold">#{{ reporte.pk }}</td>
+
+                <td class="text-nowrap">
+
+                  {{ reporte.fecha_reporte|date:"d/m/Y" }}
+
+                  <div class="text-muted small">
+
+                    {{ reporte.fecha_reporte|date:"H:i" }}
+
+                  </div>
+
+                </td>
+
+                <td>
+
+                  <div class="fw-semibold">
+
+                    {{ reporte.lugar.nombre_del_lugar }}
+
+                  </div>
+
+                  <div class="text-muted small">
+
+                    {{ reporte.lugar.piso.ubicacion.sector.sector }}
+
+                    · {{ reporte.lugar.piso.ubicacion.ubicacion }}
+
+                  </div>
+
+                </td>
+
+                <td>
+
+                  <div class="fw-semibold">
+
+                    {{ reporte.elemento_reportado }}
+
+                  </div>
+
+                  <div class="text-muted small">
+
+                    {{ reporte.get_tipo_problema_display }}
+
+                  </div>
+
+                </td>
+
+                <td>
+
+                  {% if reporte.estado == "nuevo" %}
+
+                    <span class="badge text-bg-primary">Nuevo</span>
+
+                  {% elif reporte.estado == "en_revision" %}
+
+                    <span class="badge text-bg-warning">En revisión</span>
+
+                  {% elif reporte.estado == "resuelto" %}
+
+                    <span class="badge text-bg-success">Resuelto</span>
+
+                  {% else %}
+
+                    <span class="badge text-bg-secondary">Descartado</span>
+
+                  {% endif %}
+
+                </td>
+
+                <td>
+
+                  {% if reporte.foto %}
+
+                    <i class="bi bi-image text-success"></i> Sí
+
+                  {% else %}
+
+                    <span class="text-muted">No</span>
+
+                  {% endif %}
+
+                </td>
+
+                <td class="text-end pe-4">
+
+                  <a
+
+                    href="{% url 'detalle_incidencia' incidencia_id=reporte.pk %}"
+
+                    class="btn btn-outline-primary btn-sm"
+
+                  >
+
+                    <i class="bi bi-eye me-1"></i>Ver
+
+                  </a>
+
+                </td>
+
+              </tr>
+
+            {% endfor %}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <!-- CELULAR -->
+
+      <div class="d-lg-none p-3">
+
+        <div class="d-grid gap-3">
+
+          {% for reporte in pagina %}
+
+            <div class="border rounded-4 p-3 bg-white">
+
+              <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+
+                <div>
+
+                  <div class="fw-bold">Reporte #{{ reporte.pk }}</div>
+
+                  <div class="text-muted small">
+
+                    {{ reporte.fecha_reporte|date:"d/m/Y H:i" }}
+
+                  </div>
+
+                </div>
+
+                {% if reporte.estado == "nuevo" %}
+
+                  <span class="badge text-bg-primary align-self-start">Nuevo</span>
+
+                {% elif reporte.estado == "en_revision" %}
+
+                  <span class="badge text-bg-warning align-self-start">En revisión</span>
+
+                {% elif reporte.estado == "resuelto" %}
+
+                  <span class="badge text-bg-success align-self-start">Resuelto</span>
+
+                {% else %}
+
+                  <span class="badge text-bg-secondary align-self-start">Descartado</span>
+
+                {% endif %}
+
+              </div>
+
+              <div class="fw-semibold">
+
+                {{ reporte.lugar.nombre_del_lugar }}
+
+              </div>
+
+              <div class="text-muted small mb-3">
+
+                {{ reporte.lugar.piso.ubicacion.sector.sector }}
+
+                · {{ reporte.lugar.piso.ubicacion.ubicacion }}
+
+              </div>
+
+              <div class="mb-1">
+
+                <strong>Elemento:</strong>
+
+                {{ reporte.elemento_reportado }}
+
+              </div>
+
+              <div class="mb-3">
+
+                <strong>Problema:</strong>
+
+                {{ reporte.get_tipo_problema_display }}
+
+              </div>
+
+              {% if reporte.foto %}
+
+                <div class="small text-muted mb-3">
+
+                  <i class="bi bi-paperclip me-1"></i>
+
+                  Incluye fotografía
+
+                </div>
+
+              {% endif %}
+
+              <a
+
+                href="{% url 'detalle_incidencia' incidencia_id=reporte.pk %}"
+
+                class="btn btn-outline-primary w-100"
+
+              >
+
+                <i class="bi bi-eye me-1"></i>
+
+                Revisar reporte
+
+              </a>
+
+            </div>
+
+          {% endfor %}
+
+        </div>
+
+      </div>
+
+    {% else %}
+
+      <div class="text-center p-5">
+
+        <i class="bi bi-inbox fs-2 text-muted"></i>
+
+        <div class="fw-semibold mt-2">
+
+          No se encontraron incidencias
+
+        </div>
+
+        <div class="text-muted small">
+
+          Prueba modificando los filtros.
+
+        </div>
+
+      </div>
+
+    {% endif %}
+
+  </div>
+
+  <!-- PAGINACIÓN -->
+
+  {% if pagina.has_other_pages %}
+
+    <div class="d-flex align-items-center justify-content-center gap-3 mt-4">
+
+      {% if pagina.has_previous %}
+
+        <a
+
+          class="btn btn-outline-secondary btn-sm"
+
+          href="?{% if querystring %}{{ querystring }}&amp;{% endif %}pagina={{ pagina.previous_page_number }}"
+
+        >
+
+          <i class="bi bi-chevron-left me-1"></i>Anterior
+
+        </a>
+
+      {% endif %}
+
+      <span class="text-muted small">
+
+        Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}
+
+      </span>
+
+      {% if pagina.has_next %}
+
+        <a
+
+          class="btn btn-outline-secondary btn-sm"
+
+          href="?{% if querystring %}{{ querystring }}&amp;{% endif %}pagina={{ pagina.next_page_number }}"
+
+        >
+
+          Siguiente<i class="bi bi-chevron-right ms-1"></i>
+
+        </a>
+
+      {% endif %}
+
+    </div>
+
+  {% endif %}
+
+</div>
+
+{% endtimezone %}
+
+{% endblock %}

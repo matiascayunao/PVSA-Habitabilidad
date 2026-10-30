@@ -1,303 +1,531 @@
-{% load static %}
+{% load static pvsa_roles %}
+
 <!doctype html>
+
 <html lang="es">
+
 <head>
+
   <meta charset="utf-8">
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>{% block title %}PVSA{% endblock %}</title>
 
   <link
+
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+
     rel="stylesheet"
+
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+
     crossorigin="anonymous"
+
   >
 
   <link
+
     rel="stylesheet"
+
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+
   >
 
   {% block extra_link %}{% endblock %}
 
   <style>
+
     :root{
+
       --pvsa-accent:#06b6b9;
+
       --pvsa-accent-dark:#05979a;
+
       --pvsa-bg:#f5f7fa;
+
       --pvsa-text:#212529;
+
       --pvsa-muted:#6c757d;
+
       --pvsa-border:rgba(0,0,0,.08);
+
     }
 
     html,
+
     body{
+
       min-height:100%;
+
     }
 
     body{
+
       min-height:100vh;
+
       display:flex;
+
       flex-direction:column;
+
       background:var(--pvsa-bg);
+
       color:var(--pvsa-text);
+
     }
 
     main{
+
       flex:1 0 auto;
+
       min-height:calc(100vh - 112px);
+
     }
 
     footer{
+
       flex-shrink:0;
+
       font-size:.8rem;
+
     }
 
     .pvsa-shell{
+
       width:100%;
+
       max-width:1540px;
+
       margin:0 auto;
+
     }
 
     .navbar-pvsa{
+
       background:var(--pvsa-accent);
+
     }
 
     .navbar-pvsa .navbar-brand,
+
     .navbar-pvsa .nav-link{
+
       color:#fff!important;
+
     }
 
     .navbar-pvsa .navbar-brand{
+
       letter-spacing:.02em;
+
     }
 
     .navbar-pvsa .nav-link{
+
       border-radius:.6rem;
+
       padding-left:.75rem!important;
+
       padding-right:.75rem!important;
+
       transition:background-color .15s ease;
+
     }
 
     .navbar-pvsa .nav-link:hover,
+
     .navbar-pvsa .nav-link:focus{
+
       background:rgba(255,255,255,.13);
+
     }
 
     .navbar-pvsa .navbar-toggler{
+
       border-color:rgba(255,255,255,.28);
+
     }
 
     .navbar-pvsa .navbar-toggler:focus{
+
       box-shadow:0 0 0 .18rem rgba(255,255,255,.18);
+
     }
 
     .user-menu{
+
       width:310px;
+
       padding:0;
+
       border:1px solid var(--pvsa-border);
+
       border-radius:.9rem;
+
       font-size:.9rem;
+
       overflow:hidden;
+
     }
 
     .user-menu.show{
+
       display:flex;
+
       flex-direction:column;
+
       max-height:calc(100dvh - 76px);
+
     }
 
     .user-menu-scroll{
+
       flex:1 1 auto;
+
       min-height:0;
+
       overflow-y:auto;
+
       overscroll-behavior:contain;
+
       padding:.5rem;
+
     }
 
     .user-menu-footer{
+
       flex:0 0 auto;
+
       padding:.5rem;
+
       border-top:1px solid #e9ecef;
+
       background:#fff;
+
     }
 
     .user-menu-section{
+
       padding:.45rem .65rem .25rem;
+
       color:#6c757d;
+
       font-size:.7rem;
+
       font-weight:800;
+
       text-transform:uppercase;
+
       letter-spacing:.05em;
+
     }
 
     .user-menu .dropdown-item{
+
       display:flex;
+
       align-items:center;
+
       gap:.65rem;
+
       padding:.55rem .65rem;
+
       border-radius:.55rem;
+
       white-space:normal;
+
     }
 
     .user-menu .dropdown-item i{
+
       width:18px;
+
       flex:0 0 18px;
+
       text-align:center;
+
       color:#6c757d;
+
     }
 
     .user-menu .dropdown-item:hover,
+
     .user-menu .dropdown-item:focus{
+
       background:#f5f7f8;
+
     }
 
     .user-menu .dropdown-item:active{
+
       background:var(--pvsa-accent);
+
       color:#fff;
+
     }
 
     .user-menu .dropdown-item:active i{
+
       color:#fff;
+
     }
 
     .pvsa-bg{
+
       background-color:var(--pvsa-accent)!important;
+
     }
 
     .pvsa-text{
+
       color:var(--pvsa-accent)!important;
+
     }
 
     .pvsa-btn{
+
       background-color:var(--pvsa-accent);
+
       border-color:var(--pvsa-accent);
+
       color:#fff;
+
     }
 
     .pvsa-btn:hover,
+
     .pvsa-btn:focus{
+
       background-color:var(--pvsa-accent-dark);
+
       border-color:var(--pvsa-accent-dark);
+
       color:#fff;
+
     }
 
     .rounded-4{
+
       border-radius:1rem!important;
+
     }
 
     .card{
+
       border-color:var(--pvsa-border);
+
     }
 
     .btn,
+
     .form-control,
+
     .form-select{
+
       border-radius:.6rem;
+
     }
 
     .form-control:focus,
+
     .form-select:focus{
+
       border-color:rgba(6,182,185,.55);
+
       box-shadow:0 0 0 .2rem rgba(6,182,185,.14);
+
     }
 
     .alert{
+
       border-radius:.85rem;
+
     }
 
     .pvsa-global-message{
+
       border:0;
+
     }
 
     @media (max-width:991.98px){
+
       .navbar-pvsa .navbar-collapse{
+
         padding-top:.55rem;
+
       }
 
       .navbar-pvsa .navbar-nav{
+
         align-items:stretch!important;
+
       }
 
       .navbar-pvsa .nav-link{
+
         padding-top:.65rem;
+
         padding-bottom:.65rem;
+
       }
 
       .user-menu{
+
         width:100%;
+
         margin-top:.35rem;
+
       }
 
       .user-menu.show{
+
         height:min(620px, calc(100dvh - 235px));
+
         max-height:none;
+
       }
+
     }
 
     @media (max-width:575.98px){
+
       main{
+
         min-height:calc(100vh - 104px);
+
       }
+
     }
+
   </style>
+
 </head>
 
 <body>
 
   <nav class="navbar navbar-expand-lg navbar-dark navbar-pvsa shadow-sm sticky-top">
+
     <div class="container-fluid px-3 px-lg-4">
 
       <a
+
         class="navbar-brand fw-bold d-flex align-items-center gap-2"
-        href="{% url 'home' %}"
+
+        href="{% if user|es_jefe_departamento_pvsa %}{% url 'panel_jefe' %}{% else %}{% url 'home' %}{% endif %}"
+
       >
+
         <i class="bi bi-grid-1x2-fill"></i>
+
         PVSA
+
       </a>
 
       {% if user.is_authenticated %}
 
         <button
+
           class="navbar-toggler"
+
           type="button"
+
           data-bs-toggle="collapse"
+
           data-bs-target="#navbarPVSA"
+
           aria-controls="navbarPVSA"
+
           aria-expanded="false"
+
           aria-label="Abrir navegación"
+
         >
+
           <span class="navbar-toggler-icon"></span>
+
         </button>
 
         <div class="collapse navbar-collapse" id="navbarPVSA">
 
           <div class="d-flex flex-grow-1 justify-content-lg-center">
+
             <ul class="navbar-nav align-items-lg-center flex-lg-nowrap gap-1 gap-lg-2 py-2 py-lg-0">
 
+              {% if user|es_jefe_departamento_pvsa %}
+                <li class="nav-item">
+                  <a class="nav-link fw-semibold" href="{% url 'panel_jefe' %}">
+                    <i class="bi bi-door-open me-1"></i>Mis lugares
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link fw-semibold" href="{% url 'jefe_mis_reportes' %}">
+                    <i class="bi bi-clipboard-check me-1"></i>Mis reportes
+                  </a>
+                </li>
+              {% else %}
               <li class="nav-item">
+
                 <a class="nav-link fw-semibold" href="{% url 'resumen_general' %}">
+
                   <i class="bi bi-speedometer2 me-1"></i>
+
                   Estado general
+
                 </a>
+
               </li>
 
               <li class="nav-item">
+
                 <a class="nav-link fw-semibold" href="{% url 'crear_estructura' %}">
+
                   <i class="bi bi-plus-square me-1"></i>
+
                   Registro completo
+
                 </a>
+
+              </li>
+
+              {% if user|es_administrador_pvsa %}
+
+              <li class="nav-item">
+
+                <a class="nav-link fw-semibold" href="{% url 'carga_masiva' %}">
+
+                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>
+
+                  Carga masiva
+
+                </a>
+
               </li>
 
               <li class="nav-item">
-                <a class="nav-link fw-semibold" href="{% url 'carga_masiva' %}">
-                  <i class="bi bi-file-earmark-spreadsheet me-1"></i>
-                  Carga masiva
+
+                <a
+
+                  class="nav-link fw-semibold"
+
+                  href="{% url 'lista_incidencias' %}"
+
+                >
+
+                  <i class="bi bi-clipboard2-pulse me-1"></i>
+
+                  Incidencias
+
                 </a>
+
               </li>
+
+              {% endif %}
+
+              {% endif %} {# Fin de navegación general: no visible para Jefe #}
 
             </ul>
+
           </div>
 
           <ul class="navbar-nav ms-lg-auto pb-2 pb-lg-0">
@@ -305,182 +533,328 @@
             <li class="nav-item dropdown">
 
               <a
+
                 class="nav-link dropdown-toggle fw-semibold"
+
                 href="#"
+
                 role="button"
+
                 data-bs-toggle="dropdown"
+
                 aria-expanded="false"
+
               >
+
                 <i class="bi bi-person-circle me-1"></i>
+
                 {{ user.username }}
+
               </a>
 
               <div class="dropdown-menu dropdown-menu-end user-menu shadow-sm">
+
                 <div class="user-menu-scroll">
 
-                <div class="user-menu-section">
-                  Estructura
-                </div>
+                  {% if user|es_jefe_departamento_pvsa %}
+                    <div class="user-menu-section">Mi departamento</div>
+                    <a class="dropdown-item" href="{% url 'panel_jefe' %}">
+                      <i class="bi bi-door-open"></i>Mis lugares
+                    </a>
+                    <a class="dropdown-item" href="{% url 'jefe_mis_reportes' %}">
+                      <i class="bi bi-clipboard-check"></i>Mis reportes
+                    </a>
+                  {% else %}
 
-                <a class="dropdown-item" href="{% url 'lista_sectores' %}">
-                  <i class="bi bi-grid"></i>
-                  Sectores
-                </a>
+                  <div class="user-menu-section">
 
-                <a class="dropdown-item" href="{% url 'lista_ubicaciones' %}">
-                  <i class="bi bi-geo-alt"></i>
-                  Ubicaciones
-                </a>
+                    Estructura
 
-                <a class="dropdown-item" href="{% url 'lista_pisos' %}">
-                  <i class="bi bi-layers"></i>
-                  Pisos
-                </a>
+                  </div>
 
-                <a class="dropdown-item" href="{% url 'lista_lugares' %}">
-                  <i class="bi bi-building"></i>
-                  Lugares
-                </a>
+                  <a class="dropdown-item" href="{% url 'lista_sectores' %}">
 
-                <a class="dropdown-item" href="{% url 'lista_tipos_lugar' %}">
-                  <i class="bi bi-door-open"></i>
-                  Tipos de lugar
-                </a>
+                    <i class="bi bi-grid"></i>
 
-                <div class="dropdown-divider"></div>
+                    Sectores
 
-                <div class="user-menu-section">
-                  Catálogo
-                </div>
+                  </a>
 
-                <a class="dropdown-item" href="{% url 'lista_categorias' %}">
-                  <i class="bi bi-tags"></i>
-                  Categorías
-                </a>
+                  <a class="dropdown-item" href="{% url 'lista_ubicaciones' %}">
 
-                <a class="dropdown-item" href="{% url 'lista_objetos' %}">
-                  <i class="bi bi-box-seam"></i>
-                  Objetos
-                </a>
+                    <i class="bi bi-geo-alt"></i>
 
-                <a class="dropdown-item" href="{% url 'lista_tipos_objeto' %}">
-                  <i class="bi bi-boxes"></i>
-                  Variantes
-                </a>
+                    Ubicaciones
 
-                <div class="dropdown-divider"></div>
+                  </a>
 
-                <div class="user-menu-section">
-                  Registros
-                </div>
+                  <a class="dropdown-item" href="{% url 'lista_pisos' %}">
 
-                <a class="dropdown-item" href="{% url 'lista_objetos_lugar' %}">
-                  <i class="bi bi-clipboard-data"></i>
-                  Objetos registrados
-                </a>
+                    <i class="bi bi-layers"></i>
 
-                <a class="dropdown-item" href="{% url 'lista_historicos' %}">
-                  <i class="bi bi-clock-history"></i>
-                  Historial de cambios
-                </a>
+                    Pisos
 
-                {% if user.is_staff or user.is_superuser %}
+                  </a>
+
+                  <a class="dropdown-item" href="{% url 'lista_lugares' %}">
+
+                    <i class="bi bi-building"></i>
+
+                    Lugares
+
+                  </a>
+
+                  <a class="dropdown-item" href="{% url 'lista_tipos_lugar' %}">
+
+                    <i class="bi bi-door-open"></i>
+
+                    Tipos de lugar
+
+                  </a>
 
                   <div class="dropdown-divider"></div>
 
                   <div class="user-menu-section">
-                    Administración
+
+                    Catálogo
+
                   </div>
 
-                  <a class="dropdown-item" href="{% url 'descargar_excel_sectores' %}">
-                    <i class="bi bi-file-earmark-excel"></i>
-                    Descargar Excel
+                  <a class="dropdown-item" href="{% url 'lista_categorias' %}">
+
+                    <i class="bi bi-tags"></i>
+
+                    Categorías
+
                   </a>
 
-                  <a class="dropdown-item" href="/admin/">
-                    <i class="bi bi-gear"></i>
-                    Panel administrador
+                  <a class="dropdown-item" href="{% url 'lista_objetos' %}">
+
+                    <i class="bi bi-box-seam"></i>
+
+                    Objetos
+
                   </a>
 
-                  <a class="dropdown-item" href="{% url 'signup' %}">
-                    <i class="bi bi-person-plus"></i>
-                    Crear usuario
+                  <a class="dropdown-item" href="{% url 'lista_tipos_objeto' %}">
+
+                    <i class="bi bi-boxes"></i>
+
+                    Variantes
+
                   </a>
 
-                {% endif %}
+                  <div class="dropdown-divider"></div>
+
+                  <div class="user-menu-section">
+
+                    Registros
+
+                  </div>
+
+                  <a class="dropdown-item" href="{% url 'lista_objetos_lugar' %}">
+
+                    <i class="bi bi-clipboard-data"></i>
+
+                    Objetos registrados
+
+                  </a>
+
+                  <a class="dropdown-item" href="{% url 'lista_historicos' %}">
+
+                    <i class="bi bi-clock-history"></i>
+
+                    Historial de cambios
+
+                  </a>
+
+                  {% if user|es_administrador_pvsa %}
+
+                    <a
+
+                      class="dropdown-item"
+
+                      href="{% url 'lista_incidencias' %}"
+
+                    >
+
+                      <i class="bi bi-clipboard2-pulse"></i>
+
+                      Gestión de incidencias
+
+                    </a>
+
+                  {% endif %}
+
+                  {% if user|es_administrador_pvsa %}
+
+                    <div class="dropdown-divider"></div>
+
+                    <div class="user-menu-section">
+
+                      Administración
+
+                    </div>
+
+                    <a class="dropdown-item" href="{% url 'descargar_excel_sectores' %}">
+
+                      <i class="bi bi-file-earmark-excel"></i>
+
+                      Descargar Excel
+
+                    </a>
+
+                    {% if user.is_superuser %}
+
+                      <a class="dropdown-item" href="/admin/">
+
+                        <i class="bi bi-gear"></i>
+
+                        Panel administrador
+
+                      </a>
+
+                      <a class="dropdown-item" href="{% url 'superadmin_lista_jefes' %}">
+                        <i class="bi bi-people"></i>
+                        Gestionar jefes
+                      </a>
+
+                      <a class="dropdown-item" href="{% url 'signup' %}">
+
+                        <i class="bi bi-person-plus"></i>
+
+                        Crear usuario
+
+                      </a>
+
+                    {% endif %}
+
+                  {% endif %}
+
+                  {% endif %} {# Fin de menú general #}
+
                 </div>
 
                 <div class="user-menu-footer">
+
                   <a class="dropdown-item text-danger" href="{% url 'signout' %}">
+
                     <i class="bi bi-box-arrow-right text-danger"></i>
+
                     Cerrar sesión
+
                   </a>
+
                 </div>
+
               </div>
+
             </li>
+
           </ul>
 
         </div>
 
       {% endif %}
+
     </div>
+
   </nav>
 
   <main class="py-3 py-lg-4">
+
     <div class="container-fluid px-3 px-lg-4">
+
       <div class="pvsa-shell">
 
         {% if messages %}
+
           <div class="mb-3">
+
             {% for message in messages %}
+
               <div
+
                 class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm pvsa-global-message"
+
                 role="alert"
+
               >
+
                 {{ message }}
 
                 <button
+
                   type="button"
+
                   class="btn-close"
+
                   data-bs-dismiss="alert"
+
                   aria-label="Cerrar"
+
                 ></button>
+
               </div>
+
             {% endfor %}
+
           </div>
+
         {% endif %}
 
         {% block content %}{% endblock %}
 
       </div>
+
     </div>
+
   </main>
 
   <footer class="border-top bg-white py-2">
+
     <div class="container-fluid px-3 px-lg-4">
+
       <div class="pvsa-shell d-flex flex-wrap justify-content-between gap-2">
+
         <span class="text-muted">
+
           PVSA · Control de habitabilidad
+
         </span>
 
         <a
-          href="{% url 'home' %}"
+
+          href="{% if user|es_jefe_departamento_pvsa %}{% url 'panel_jefe' %}{% else %}{% url 'home' %}{% endif %}"
+
           class="text-muted text-decoration-none"
+
         >
+
           Inicio
+
         </a>
+
       </div>
+
     </div>
+
   </footer>
 
   <script
+
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+
     integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+
     crossorigin="anonymous"
+
   ></script>
 
   <script>
+
     window.PVSA_FILTROS_URL = "{% url 'ajax_filtros_dependientes' %}";
+
   </script>
 
   <script src="{% static 'p_w_pvsa/js/filtros_dependientes.js' %}?v=1"></script>
@@ -488,4 +862,5 @@
   {% block extra_script %}{% endblock %}
 
 </body>
+
 </html>

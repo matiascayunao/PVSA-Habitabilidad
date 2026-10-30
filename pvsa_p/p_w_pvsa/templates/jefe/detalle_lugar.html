@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ lugar.nombre_del_lugar }} · PVSA{% endblock %}
+{% block content %}
+<div class="py-3">
+  <a class="btn btn-outline-secondary btn-sm mb-3" href="{% url 'panel_jefe' %}">
+    <i class="bi bi-arrow-left me-1"></i>Volver a mis lugares
+  </a>
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+    <div>
+      <div class="small text-muted">{{ lugar.piso.ubicacion.sector.sector }} / {{ lugar.piso.ubicacion.ubicacion }} / Piso {{ lugar.piso.piso }}</div>
+      <h1 class="h3 fw-bold mb-1">{{ lugar.nombre_del_lugar }}</h1>
+      <div class="text-muted">{{ lugar.lugar_tipo_lugar.tipo_de_lugar }}</div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end">
+      {% if es_lugar_propio %}
+        <span class="badge text-bg-primary rounded-pill px-3 py-2">Espacio asignado</span>
+      {% else %}
+        <span class="badge text-bg-secondary rounded-pill px-3 py-2">Área común · Solo lectura</span>
+      {% endif %}
+      <a class="btn pvsa-btn btn-sm" href="{% url 'jefe_reportar_incidencia' lugar_id=lugar.id %}">
+        <i class="bi bi-clipboard2-plus me-1"></i>Reportar desperfecto
+      </a>
+    </div>
+  </div>
+  {% if es_lugar_propio %}
+    <div class="alert alert-info border-0">Puedes agregar y editar los objetos de este espacio asignado. Toda operación queda registrada.</div>
+  {% else %}
+    <div class="alert alert-light border">Puedes consultar el inventario y reportar desperfectos. La edición del inventario está reservada a la administración.</div>
+  {% endif %}
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-white p-3 p-md-4 d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <h2 class="h5 fw-bold mb-0">Inventario registrado</h2>
+      {% if es_lugar_propio %}
+        <a href="{% url 'jefe_crear_objeto' lugar_id=lugar.id %}" class="btn pvsa-btn btn-sm">
+          <i class="bi bi-plus-circle me-1"></i>Agregar objeto
+        </a>
+      {% endif %}
+    </div>
+    <div class="card-body p-3 p-md-4">
+      {% for obj in objetos %}
+        <div class="border-bottom py-3 {% if forloop.first %}pt-0{% endif %}">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="fw-semibold">
+              {% if obj.tipo_de_objeto and obj.tipo_de_objeto.objeto %}{{ obj.tipo_de_objeto.objeto.nombre_del_objeto }}{% else %}Objeto sin descripción{% endif %}
+            </div>
+            {% if es_lugar_propio %}
+              <a href="{% url 'jefe_editar_objeto' objeto_lugar_id=obj.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil me-1"></i>Editar
+              </a>
+            {% endif %}
+          </div>
+          <div class="small text-muted">Total: {{ obj.cantidad }} · Con falla: {{ obj.cantidad_mala }} · Por revisar: {{ obj.cantidad_pendiente }}</div>
+          {% if obj.detalle %}<div class="small mt-1">{{ obj.detalle }}</div>{% endif %}
+        </div>
+      {% empty %}
+        <div class="text-muted">Todavía no hay objetos registrados en este lugar.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

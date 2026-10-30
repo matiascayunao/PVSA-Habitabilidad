@@ -1,0 +1,363 @@
+
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}Reporte #{{ reporte.pk }} · PVSA{% endblock %}
+
+{% block content %}
+{% timezone "America/Santiago" %}
+
+<div class="py-2 py-lg-3">
+
+  <div class="mb-4">
+    <a
+      href="{% url 'lista_incidencias' %}"
+      class="btn btn-outline-secondary btn-sm mb-3"
+    >
+      <i class="bi bi-arrow-left me-1"></i>
+      Volver a incidencias
+    </a>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+      <div>
+        <div class="small text-muted mb-1">
+          Detalle de incidencia
+        </div>
+        <h1 class="h3 fw-bold mb-0">
+          Reporte #{{ reporte.pk }}
+        </h1>
+      </div>
+
+      {% if reporte.estado == "nuevo" %}
+        <span class="badge rounded-pill text-bg-primary px-3 py-2">
+          Nuevo
+        </span>
+      {% elif reporte.estado == "en_revision" %}
+        <span class="badge rounded-pill text-bg-warning px-3 py-2">
+          En revisión
+        </span>
+      {% elif reporte.estado == "resuelto" %}
+        <span class="badge rounded-pill text-bg-success px-3 py-2">
+          Resuelto
+        </span>
+      {% else %}
+        <span class="badge rounded-pill text-bg-secondary px-3 py-2">
+          Descartado
+        </span>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- INFORMACIÓN DEL REPORTE -->
+    <div class="col-12 col-xl-7">
+
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+
+          <h2 class="h5 fw-bold mb-4">
+            <i class="bi bi-clipboard2-pulse me-2"></i>
+            Información del problema
+          </h2>
+
+          <div class="row g-4">
+
+            <div class="col-12 col-sm-6">
+              <div class="text-muted small">Fecha de recepción</div>
+              <div class="fw-semibold">
+                {{ reporte.fecha_reporte|date:"d/m/Y" }}
+                a las
+                {{ reporte.fecha_reporte|date:"H:i:s" }}
+              </div>
+              <div class="small text-muted">Hora de Chile</div>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <div class="text-muted small">Origen</div>
+              <div class="fw-semibold">
+                {{ reporte.get_origen_display }}
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <div class="text-muted small">Elemento reportado</div>
+              <div class="fw-semibold">
+                {{ reporte.elemento_reportado }}
+              </div>
+            </div>
+
+            <div class="col-12 col-sm-6">
+              <div class="text-muted small">Problema</div>
+              <div class="fw-semibold">
+                {{ reporte.get_tipo_problema_display }}
+              </div>
+            </div>
+
+          </div>
+
+          <hr class="my-4">
+
+          <div class="text-muted small mb-1">
+            Descripción del reporte
+          </div>
+
+          {% if reporte.descripcion %}
+            <div class="border rounded-3 bg-light p-3"
+                 style="overflow-wrap:anywhere;">
+              {{ reporte.descripcion|linebreaksbr }}
+            </div>
+          {% else %}
+            <div class="text-muted">
+              No se agregó una descripción.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <!-- UBICACIÓN -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+
+          <h2 class="h5 fw-bold mb-3">
+            <i class="bi bi-geo-alt me-2"></i>
+            Ubicación de la incidencia
+          </h2>
+
+          <div class="fw-bold fs-5 mb-3">
+            {{ reporte.lugar.nombre_del_lugar }}
+          </div>
+
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="text-muted small">Sector</div>
+              <div class="fw-semibold">
+                {{ reporte.lugar.piso.ubicacion.sector.sector }}
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="text-muted small">Ubicación</div>
+              <div class="fw-semibold">
+                {{ reporte.lugar.piso.ubicacion.ubicacion }}
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="text-muted small">Piso</div>
+              <div class="fw-semibold">
+                {{ reporte.lugar.piso.piso }}
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="text-muted small">Tipo de lugar</div>
+              <div class="fw-semibold">
+                {{ reporte.lugar.lugar_tipo_lugar.tipo_de_lugar }}
+              </div>
+            </div>
+          </div>
+
+          <a
+            href="{% url 'detalle_lugar' lugar_id=reporte.lugar.pk %}"
+            class="btn btn-outline-primary btn-sm mt-4"
+          >
+            <i class="bi bi-building me-1"></i>
+            Abrir detalle del lugar
+          </a>
+
+        </div>
+      </div>
+
+      <!-- FOTOGRAFÍA PRIVADA -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-3 p-md-4">
+
+          <h2 class="h5 fw-bold mb-3">
+            <i class="bi bi-camera me-2"></i>
+            Fotografía de evidencia
+          </h2>
+
+          {% if reporte.foto %}
+            <div class="border rounded-3 overflow-hidden bg-light text-center p-2">
+              <img
+                src="{% url 'foto_incidencia' incidencia_id=reporte.pk %}"
+                alt="Fotografía adjunta al reporte"
+                class="img-fluid rounded-3"
+                style="max-height:480px;object-fit:contain;"
+                loading="lazy"
+              >
+            </div>
+
+            <a
+              href="{% url 'foto_incidencia' incidencia_id=reporte.pk %}"
+              class="btn btn-outline-secondary btn-sm mt-3"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i class="bi bi-arrows-fullscreen me-1"></i>
+              Ver fotografía
+            </a>
+
+            <div class="small text-muted mt-2">
+              Acceso restringido a personal autorizado.
+            </div>
+          {% else %}
+            <div class="text-muted">
+              Este reporte no incluye fotografía.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PANEL DE ATENCIÓN -->
+    <div class="col-12 col-xl-5">
+
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 p-md-4">
+
+          <h2 class="h5 fw-bold mb-2">
+            <i class="bi bi-tools me-2"></i>
+            Gestionar incidencia
+          </h2>
+
+          <p class="text-muted small mb-4">
+            Actualiza el estado y registra las observaciones
+            de la atención.
+          </p>
+
+          <form method="post">
+            {% csrf_token %}
+            <input
+              type="hidden"
+              name="accion"
+              value="actualizar_estado"
+            >
+
+            <div class="mb-4">
+              <label for="estadoIncidencia" class="form-label fw-semibold">
+                Estado del reporte
+              </label>
+
+              <select
+                name="estado"
+                id="estadoIncidencia"
+                class="form-select"
+                required
+              >
+                {% for valor, etiqueta in estados %}
+                  <option
+                    value="{{ valor }}"
+                    {% if reporte.estado == valor %}selected{% endif %}
+                  >
+                    {{ etiqueta }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <div class="form-text">
+                Nuevo, En revisión, Resuelto o Descartado.
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label
+                for="observacionResolucion"
+                class="form-label fw-semibold"
+              >
+                Observaciones de atención
+              </label>
+
+              <textarea
+                class="form-control"
+                name="observacion_resolucion"
+                id="observacionResolucion"
+                rows="5"
+                maxlength="3000"
+                placeholder="Ejemplo: Se reemplazó la luminaria dañada."
+              >{{ reporte.observacion_resolucion }}</textarea>
+            </div>
+
+            <button
+              type="submit"
+              class="btn pvsa-btn w-100"
+            >
+              <i class="bi bi-check-circle me-1"></i>
+              Guardar cambios
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- SEGUIMIENTO -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-3 p-md-4">
+
+          <h2 class="h5 fw-bold mb-4">
+            <i class="bi bi-clock-history me-2"></i>
+            Seguimiento
+          </h2>
+
+          <div class="mb-3">
+            <div class="text-muted small">
+              Atendido por
+            </div>
+            <div class="fw-semibold">
+              {% if reporte.atendido_por %}
+                {{ reporte.atendido_por.username }}
+              {% else %}
+                Pendiente de asignación
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="text-muted small">
+              Inicio de atención
+            </div>
+            <div class="fw-semibold">
+              {% if reporte.fecha_inicio_atencion %}
+                {{ reporte.fecha_inicio_atencion|date:"d/m/Y H:i:s" }}
+              {% else %}
+                Sin iniciar
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="text-muted small">
+              Fecha de resolución
+            </div>
+            <div class="fw-semibold">
+              {% if reporte.fecha_resolucion %}
+                {{ reporte.fecha_resolucion|date:"d/m/Y H:i:s" }}
+              {% else %}
+                No resuelto
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="small text-muted border-top pt-3">
+            Las fechas se muestran en horario de Chile.
+            Los cambios de estado no modifican automáticamente
+            el inventario del lugar.
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+{% endtimezone %}
+{% endblock %}
