@@ -15,6 +15,86 @@ from ..models import TipoObjeto
 from ..models import ObjetoLugar
 
 
+def _clave_estructura(valor):
+    """Compara nombres de una misma solicitud sin crear registros duplicados."""
+    return " ".join((valor or "").split()).casefold()
+
+
+def _validar_repetidos_estructura(formset):
+    """Evita conflictos entre filas que cada formulario aislado no detecta."""
+    objetos_nuevos = {}
+    inventarios_por_variante = {}
+    es_valido = True
+
+    for indice, fila in enumerate(formset.forms, start=1):
+        datos = fila.cleaned_data
+        if not datos or datos.get("__empty__"):
+            continue
+
+        categoria_existente = datos.get("categoria_existente")
+        categoria_nueva = _clave_estructura(datos.get("categoria_nueva"))
+        objeto_existente = datos.get("objeto_existente")
+        objeto_nuevo = _clave_estructura(datos.get("objeto_nuevo"))
+        variante_existente = datos.get("tipo_objeto_existente")
+
+        if objeto_existente and categoria_nueva:
+            fila.add_error(
+                "objeto_existente",
+                "Un objeto existente debe conservar su categoría. "
+                "Selecciona la categoría a la que pertenece.",
+            )
+            es_valido = False
+
+        if variante_existente and objeto_nuevo:
+            fila.add_error(
+                "tipo_objeto_existente",
+                "Una variante existente no puede asignarse a un objeto nuevo.",
+            )
+            es_valido = False
+
+        if objeto_nuevo:
+            categoria_id = (
+                ("existente", categoria_existente.pk)
+                if categoria_existente else ("nueva", categoria_nueva)
+            )
+            primera_categoria = objetos_nuevos.get(objeto_nuevo)
+            if primera_categoria is not None and primera_categoria != categoria_id:
+                fila.add_error(
+                    "objeto_nuevo",
+                    "Este objeto nuevo aparece en distintas categorías. "
+                    "Un objeto debe pertenecer a una sola categoría.",
+                )
+                es_valido = False
+            else:
+                objetos_nuevos[objeto_nuevo] = categoria_id
+
+        objeto_id = (
+            ("existente", objeto_existente.pk)
+            if objeto_existente else ("nuevo", objeto_nuevo)
+        )
+        variante_id = (
+            ("existente", variante_existente.pk)
+            if variante_existente else (
+                "nueva",
+                _clave_estructura(datos.get("marca")),
+                _clave_estructura(datos.get("material")),
+            )
+        )
+        combinacion = (objeto_id, variante_id)
+        primera_fila = inventarios_por_variante.get(combinacion)
+        if primera_fila is not None:
+            fila.add_error(
+                "tipo_objeto_existente",
+                f"Esta misma variante ya está incluida en la fila {primera_fila}. "
+                "Registra cada variante una sola vez por lugar.",
+            )
+            es_valido = False
+        else:
+            inventarios_por_variante[combinacion] = indice
+
+    return es_valido
+
+
 @login_required
 @transaction.atomic
 def crear_estructura(request):
@@ -25,7 +105,11 @@ def crear_estructura(request):
             prefix="obj",
         )
 
-        if form.is_valid() and objetos_formset.is_valid():
+        if (
+            form.is_valid()
+            and objetos_formset.is_valid()
+            and _validar_repetidos_estructura(objetos_formset)
+        ):
             cd = form.cleaned_data
 
             sector = cd.get("sector_existente")
@@ -72,6 +156,13 @@ def crear_estructura(request):
                 )
 
 
+            # Se comparten los catálogos nuevos dentro de esta solicitud.
+            # Así, repetir una categoría u objeto en distintas filas no
+            # intenta crear un segundo registro con el mismo nombre único.
+            categorias_creadas = {}
+            objetos_creados = {}
+            variantes_creadas = {}
+
             for fila in objetos_formset:
                 if not fila.cleaned_data:
                     continue
@@ -83,31 +174,44 @@ def crear_estructura(request):
 
                 categoria = row.get("categoria_existente")
                 if not categoria:
-                    categoria = CategoriaObjeto.objects.create(
-                        nombre_de_categoria=(
-                            row.get("categoria_nueva") or ""
-                        ).strip()
-                    )
+                    nombre_categoria = (row.get("categoria_nueva") or "").strip()
+                    clave_categoria = _clave_estructura(nombre_categoria)
+                    categoria = categorias_creadas.get(clave_categoria)
+                    if categoria is None:
+                        categoria = CategoriaObjeto.objects.create(
+                            nombre_de_categoria=nombre_categoria,
+                        )
+                        categorias_creadas[clave_categoria] = categoria
 
                 objeto = row.get("objeto_existente")
                 if not objeto:
-                    objeto = Objeto.objects.create(
-                        nombre_del_objeto=(
-                            row.get("objeto_nuevo") or ""
-                        ).strip(),
-                        objeto_categoria=categoria,
-                    )
+                    nombre_objeto = (row.get("objeto_nuevo") or "").strip()
+                    clave_objeto = _clave_estructura(nombre_objeto)
+                    objeto = objetos_creados.get(clave_objeto)
+                    if objeto is None:
+                        objeto = Objeto.objects.create(
+                            nombre_del_objeto=nombre_objeto,
+                            objeto_categoria=categoria,
+                        )
+                        objetos_creados[clave_objeto] = objeto
 
                 tipo_objeto = row.get("tipo_objeto_existente")
                 if not tipo_objeto:
                     marca = (row.get("marca") or "").strip() or None
                     material = (row.get("material") or "").strip() or None
-
-                    tipo_objeto = TipoObjeto.objects.create(
-                        objeto=objeto,
-                        marca=marca,
-                        material=material,
+                    clave_variante = (
+                        objeto.pk,
+                        _clave_estructura(marca),
+                        _clave_estructura(material),
                     )
+                    tipo_objeto = variantes_creadas.get(clave_variante)
+                    if tipo_objeto is None:
+                        tipo_objeto = TipoObjeto.objects.create(
+                            objeto=objeto,
+                            marca=marca,
+                            material=material,
+                        )
+                        variantes_creadas[clave_variante] = tipo_objeto
 
                 ObjetoLugar.objects.create(
                     lugar=lugar,
