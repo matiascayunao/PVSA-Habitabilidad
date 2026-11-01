@@ -2,6 +2,7 @@ import json
 import re
 import unicodedata
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -60,6 +61,100 @@ def _importancia_to_int(value):
     if s in ('2', 'media'):
         return 2
     return 1
+
+def _entero_importacion(valor, campo, fila, predeterminado=None):
+    if valor is None or (isinstance(valor, str) and not valor.strip()):
+        if predeterminado is not None:
+            return predeterminado
+        raise ValueError(f'Fila {fila}: el campo "{campo}" es obligatorio.')
+    if isinstance(valor, bool):
+        raise ValueError(f'Fila {fila}: "{campo}" debe ser un número entero válido.')
+    try:
+        numero = Decimal(str(valor).strip())
+    except (InvalidOperation, ValueError, OverflowError):
+        raise ValueError(f'Fila {fila}: "{campo}" debe ser un número entero válido.')
+    if not numero.is_finite():
+        raise ValueError(f'Fila {fila}: "{campo}" debe ser un número entero válido.')
+    if numero > 2147483647 or numero < -2147483648:
+        raise ValueError(f'Fila {fila}: "{campo}" está fuera del rango permitido.')
+    if numero != numero.to_integral_value():
+        raise ValueError(f'Fila {fila}: "{campo}" debe ser un número entero válido.')
+    return int(numero)
+
+
+def _importancia_importacion(valor, fila):
+    if valor is None or (isinstance(valor, str) and not valor.strip()):
+        return 1
+    try:
+        numero = _entero_importacion(valor, 'Importancia', fila)
+        if numero in (1, 2, 3):
+            return numero
+    except ValueError:
+        pass
+    nombre = _norm_header(valor)
+    equivalencias = {
+        'baja': 1,
+        'media': 2,
+        'alta': 3,
+        'critica': 3,
+        'alta/critica': 3,
+    }
+    if nombre in equivalencias:
+        return equivalencias[nombre]
+    raise ValueError(f'Fila {fila}: "Importancia" debe ser Baja, Media o Alta / Crítica.')
+
+
+def _normalizar_fila_importacion(fila_datos, numero_fila, *, permitir_estado_legado=False):
+    if not isinstance(fila_datos, dict):
+        raise ValueError(f'Fila {numero_fila}: formato de datos no válido.')
+
+    cantidad = _entero_importacion(fila_datos.get('cantidad'), 'Cantidad total', numero_fila)
+    malas = _entero_importacion(fila_datos.get('cantidad_mala'), 'Con falla', numero_fila, 0)
+    pendientes = _entero_importacion(fila_datos.get('cantidad_pendiente'), 'Por revisar', numero_fila, 0)
+    minimo = _entero_importacion(fila_datos.get('minimo_operativo'), 'Mínimo operativo', numero_fila, 1)
+    importancia = _importancia_importacion(fila_datos.get('importancia'), numero_fila)
+
+    if cantidad <= 0:
+        raise ValueError(f'Fila {numero_fila}: la cantidad total debe ser mayor que cero.')
+    if malas < 0 or pendientes < 0:
+        raise ValueError(f'Fila {numero_fila}: "Con falla" y "Por revisar" no pueden ser negativos.')
+    if minimo < 1 or minimo > cantidad:
+        raise ValueError(f'Fila {numero_fila}: el mínimo operativo debe estar entre 1 y la cantidad total.')
+
+    estado_original = _clean_text(fila_datos.get('estado')).lower()
+    if permitir_estado_legado and not fila_datos.get('__contadores_presentes__', True) and malas == 0 and pendientes == 0:
+        if estado_original in ('m', 'malo', 'con fallas', 'con falla', 'con unidades malas'):
+            malas = cantidad
+        elif estado_original in ('p', 'pendiente', 'con pendientes', 'por revisar'):
+            pendientes = cantidad
+
+    if malas + pendientes > cantidad:
+        raise ValueError(
+            f'Fila {numero_fila}: la suma de "Con falla" y "Por revisar" '
+            'no puede superar la cantidad total.'
+        )
+
+    campos_texto = ('sector', 'ubicacion', 'piso', 'tipo_de_lugar', 'lugar',
+                    'categoria', 'objeto', 'tipo_objeto', 'marca', 'material', 'detalle')
+    resultado = {campo: _clean_text(fila_datos.get(campo)) for campo in campos_texto}
+    for campo, etiqueta in (
+        ('sector', 'Sector'), ('ubicacion', 'Ubicación'),
+        ('lugar', 'Lugar'), ('objeto', 'Objeto'),
+    ):
+        if not resultado[campo]:
+            raise ValueError(f'Fila {numero_fila}: el campo "{etiqueta}" es obligatorio.')
+    resultado['tipo_de_lugar'] = resultado['tipo_de_lugar'] or 'Sin especificar'
+    resultado['categoria'] = resultado['categoria'] or 'Sin categoría'
+    resultado.update({
+        'cantidad': cantidad,
+        'cantidad_mala': malas,
+        'cantidad_pendiente': pendientes,
+        'minimo_operativo': minimo,
+        'importancia': importancia,
+        'estado': 'M' if malas > 0 else ('P' if pendientes > 0 else 'B'),
+        'fecha': fila_datos.get('fecha'),
+    })
+    return resultado
 HEADER_ALIASES = {
     'ubicacion': 'ubicacion',
     'ubicación': 'ubicacion',
@@ -167,6 +262,7 @@ def _parse_normalizado(wb):
             'marca': _clean_text(rec.get('marca')),
             'material': _clean_text(rec.get('material')),
             'cantidad': rec.get('cantidad') if rec.get('cantidad') is not None else 0,
+            '__contadores_presentes__': any(k in ('cantidad_mala', 'cantidad_pendiente') for k in header_map.values()),
             'cantidad_mala': rec.get('cantidad_mala') if rec.get('cantidad_mala') is not None else 0,
             'cantidad_pendiente': rec.get('cantidad_pendiente') if rec.get('cantidad_pendiente') is not None else 0,
             'minimo_operativo': rec.get('minimo_operativo') if rec.get('minimo_operativo') is not None else 1,
@@ -261,6 +357,7 @@ def _parse_exportado(wb):
                         'objeto': _clean_text(obj_val),
                         'tipo_objeto': _clean_text(tipo_val),
                         'cantidad': cant_val if cant_val is not None else 0,
+                        '__contadores_presentes__': any(k in ('cantidad_mala', 'cantidad_pendiente') for k in header_map.values()),
                         'cantidad_mala': mala_val if mala_val is not None else 0,
                         'cantidad_pendiente': pendiente_val if pendiente_val is not None else 0,
                         'minimo_operativo': minimo_val if minimo_val is not None else 1,
@@ -303,16 +400,6 @@ def import_from_rows(rows):
         m = re.search('(\\d+)', s)
         return int(m.group(1)) if m else 0
 
-    def _estado_to_code(estado_raw):
-        s = (estado_raw or '').strip().lower()
-        if s in ('b', 'bueno', 'todo bueno', 'operativo', 'funcionando'):
-            return 'B'
-        if s in ('p', 'pendiente', 'con pendientes', 'por revisar'):
-            return 'P'
-        if s in ('m', 'malo', 'con fallas', 'con falla', 'con unidades malas'):
-            return 'M'
-        return ''
-
     def key(value):
         return (value or '').strip().casefold()
 
@@ -327,6 +414,12 @@ def import_from_rows(rows):
         if texto.casefold() == 'sin material':
             return ''
         return texto
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('La importación no contiene filas para guardar.')
+    filas_validadas = [
+        _normalizar_fila_importacion(fila, indice)
+        for indice, fila in enumerate(rows, start=1)
+    ]
     created_ol = 0
     updated_ol = 0
     cache_sector = {}
@@ -338,49 +431,24 @@ def import_from_rows(rows):
     cache_objeto = {}
     cache_variante = {}
     with transaction.atomic():
-        for r in rows:
-            ubicacion = _clean_text(r.get('ubicacion'))
-            sector = _clean_text(r.get('sector'))
-            piso_raw = _clean_text(r.get('piso'))
-            tipo_de_lugar = _clean_text(r.get('tipo_de_lugar')) or 'Sin especificar'
-            lugar = _clean_text(r.get('lugar'))
-            categoria = _clean_text(r.get('categoria')) or 'Sin categoría'
-            objeto = _clean_text(r.get('objeto'))
-            tipo_objeto_str = _clean_text(r.get('tipo_objeto'))
-            marca_excel = _clean_text(r.get('marca'))
-            material_excel = _clean_text(r.get('material'))
-            detalle = _clean_text(r.get('detalle'))
-            estado_excel = _estado_to_code(r.get('estado'))
-            cantidad = _to_int(r.get('cantidad'), 0)
-            cantidad_mala = _to_int(r.get('cantidad_mala'), 0)
-            cantidad_pendiente = _to_int(r.get('cantidad_pendiente'), 0)
-            minimo_operativo = _to_int(r.get('minimo_operativo'), 1)
-            importancia = _importancia_to_int(r.get('importancia'))
-            if not (ubicacion and sector and lugar and objeto):
-                continue
-            if cantidad <= 0:
-                continue
-            if cantidad_mala < 0:
-                cantidad_mala = 0
-            if cantidad_pendiente < 0:
-                cantidad_pendiente = 0
-            if minimo_operativo < 1:
-                minimo_operativo = 1
-            if minimo_operativo > cantidad:
-                minimo_operativo = cantidad
-            if cantidad_mala == 0 and cantidad_pendiente == 0:
-                if estado_excel == 'M':
-                    cantidad_mala = cantidad
-                elif estado_excel == 'P':
-                    cantidad_pendiente = cantidad
-            if cantidad_mala + cantidad_pendiente > cantidad:
-                continue
-            if cantidad_mala > 0:
-                estado = 'M'
-            elif cantidad_pendiente > 0:
-                estado = 'P'
-            else:
-                estado = 'B'
+        for r in filas_validadas:
+            ubicacion = r['ubicacion']
+            sector = r['sector']
+            piso_raw = r['piso']
+            tipo_de_lugar = r['tipo_de_lugar']
+            lugar = r['lugar']
+            categoria = r['categoria']
+            objeto = r['objeto']
+            tipo_objeto_str = r['tipo_objeto']
+            marca_excel = r['marca']
+            material_excel = r['material']
+            detalle = r['detalle']
+            cantidad = r['cantidad']
+            cantidad_mala = r['cantidad_mala']
+            cantidad_pendiente = r['cantidad_pendiente']
+            minimo_operativo = r['minimo_operativo']
+            importancia = r['importancia']
+            estado = r['estado']
             sector_key = key(sector)
             if sector_key in cache_sector:
                 sector_obj = cache_sector[sector_key]
@@ -394,12 +462,12 @@ def import_from_rows(rows):
                 ubicacion_obj = cache_ubicacion[ubicacion_key]
             else:
                 ubicacion_obj = Ubicacion.objects.select_related('sector').filter(ubicacion__iexact=ubicacion).first()
-                if ubicacion_obj:
-                    if ubicacion_obj.sector_id != sector_obj.id:
-                        raise ValueError(f'La ubicación "{ubicacion}" ya existe en el sector "{ubicacion_obj.sector.sector}" y no puede importarse también en "{sector_obj.sector}".')
-                else:
+                if not ubicacion_obj:
                     ubicacion_obj = Ubicacion.objects.create(ubicacion=ubicacion, sector=sector_obj)
                 cache_ubicacion[ubicacion_key] = ubicacion_obj
+            # Validar también cuando la ubicación proviene de la caché.
+            if ubicacion_obj.sector_id != sector_obj.id:
+                raise ValueError(f'La ubicación "{ubicacion}" ya existe en el sector "{ubicacion_obj.sector.sector}" y no puede importarse también en "{sector_obj.sector}".')
             piso_int = _piso_to_int(piso_raw)
             piso_key = (piso_int, ubicacion_obj.id)
             if piso_key in cache_piso:
@@ -422,12 +490,12 @@ def import_from_rows(rows):
                 lugar_obj = cache_lugar[lugar_key]
             else:
                 lugar_obj = Lugar.objects.select_related('lugar_tipo_lugar').filter(piso=piso_obj, nombre_del_lugar__iexact=lugar).first()
-                if lugar_obj:
-                    if lugar_obj.lugar_tipo_lugar_id != tipo_lugar_obj.id:
-                        raise ValueError(f'El lugar "{lugar}" ya existe en Piso {piso_obj.piso} como tipo "{lugar_obj.lugar_tipo_lugar.tipo_de_lugar}".')
-                else:
+                if not lugar_obj:
                     lugar_obj = Lugar.objects.create(nombre_del_lugar=lugar, piso=piso_obj, lugar_tipo_lugar=tipo_lugar_obj)
                 cache_lugar[lugar_key] = lugar_obj
+            # Un mismo lugar no puede cambiar de tipo dentro de la importación.
+            if lugar_obj.lugar_tipo_lugar_id != tipo_lugar_obj.id:
+                raise ValueError(f'El lugar "{lugar}" ya existe en Piso {piso_obj.piso} como tipo "{lugar_obj.lugar_tipo_lugar.tipo_de_lugar}".')
             categoria_key = key(categoria)
             if categoria_key in cache_categoria:
                 categoria_obj = cache_categoria[categoria_key]
@@ -441,12 +509,12 @@ def import_from_rows(rows):
                 objeto_obj = cache_objeto[objeto_key]
             else:
                 objeto_obj = Objeto.objects.select_related('objeto_categoria').filter(nombre_del_objeto__iexact=objeto).first()
-                if objeto_obj:
-                    if objeto_obj.objeto_categoria_id != categoria_obj.id:
-                        raise ValueError(f'El objeto "{objeto}" ya existe en la categoría "{objeto_obj.objeto_categoria.nombre_de_categoria}".')
-                else:
+                if not objeto_obj:
                     objeto_obj = Objeto.objects.create(nombre_del_objeto=objeto, objeto_categoria=categoria_obj)
                 cache_objeto[objeto_key] = objeto_obj
+            # La categoría debe coincidir incluso si el objeto ya está en caché.
+            if objeto_obj.objeto_categoria_id != categoria_obj.id:
+                raise ValueError(f'El objeto "{objeto}" ya existe en la categoría "{objeto_obj.objeto_categoria.nombre_de_categoria}".')
             if marca_excel or material_excel:
                 marca = normalizar_marca(marca_excel)
                 material = normalizar_material(material_excel)
@@ -502,7 +570,9 @@ def carga_masiva(request):
     if request.POST.get('payload_json'):
         raw = {}
         try:
-            raw = json.loads(request.POST['payload_json'])
+            raw = json.loads(request.POST['payload_json'], parse_float=Decimal)
+            if not isinstance(raw, dict):
+                raise ValueError('El contenido de la importación no es válido.')
             rows = raw.get('objetos_lugar', [])
             result = import_from_rows(rows)
             messages.success(request, f"Importación OK. Creados: {result['created']} | Actualizados: {result['updated']}")
@@ -514,58 +584,10 @@ def carga_masiva(request):
         return render(request, 'excel/carga_masiva.html', {'step': 'upload', 'error': 'Selecciona un archivo Excel (.xlsx).'})
     try:
         rows, detected = parse_excel(file_obj)
-        normalized_rows = []
-        for r in rows:
-            cantidad = _to_int(r.get('cantidad'), 0)
-            cantidad_mala = _to_int(r.get('cantidad_mala'), 0)
-            cantidad_pendiente = _to_int(r.get('cantidad_pendiente'), 0)
-            minimo_operativo = _to_int(r.get('minimo_operativo'), 1)
-            importancia = _importancia_to_int(r.get('importancia'))
-            estado_excel = _clean_text(r.get('estado')).upper()
-            if cantidad < 0:
-                cantidad = 0
-            if cantidad_mala < 0:
-                cantidad_mala = 0
-            if cantidad_pendiente < 0:
-                cantidad_pendiente = 0
-            if minimo_operativo < 1:
-                minimo_operativo = 1
-            if cantidad > 0 and minimo_operativo > cantidad:
-                minimo_operativo = cantidad
-            if cantidad_mala == 0 and cantidad_pendiente == 0:
-                if estado_excel in ('M', 'MALO', 'CON FALLAS', 'CON UNIDADES MALAS') and cantidad > 0:
-                    cantidad_mala = cantidad
-                elif estado_excel in ('P', 'PENDIENTE', 'CON PENDIENTES') and cantidad > 0:
-                    cantidad_pendiente = cantidad
-            if cantidad_mala + cantidad_pendiente > cantidad:
-                cantidad_mala = 0
-                cantidad_pendiente = 0
-            if cantidad_mala > 0:
-                estado_calculado = 'M'
-            elif cantidad_pendiente > 0:
-                estado_calculado = 'P'
-            else:
-                estado_calculado = 'B'
-            normalized_rows.append({
-                'ubicacion': _clean_text(r.get('ubicacion')),
-                'sector': _clean_text(r.get('sector')),
-                'piso': _clean_text(r.get('piso')),
-                'tipo_de_lugar': _clean_text(r.get('tipo_de_lugar')) or 'Sin especificar',
-                'lugar': _clean_text(r.get('lugar')),
-                'categoria': _clean_text(r.get('categoria')) or 'Sin categoría',
-                'objeto': _clean_text(r.get('objeto')),
-                'tipo_objeto': _clean_text(r.get('tipo_objeto')),
-                'marca': _clean_text(r.get('marca')),
-                'material': _clean_text(r.get('material')),
-                'cantidad': cantidad,
-                'cantidad_mala': cantidad_mala,
-                'cantidad_pendiente': cantidad_pendiente,
-                'minimo_operativo': minimo_operativo,
-                'importancia': importancia,
-                'estado': estado_calculado,
-                'detalle': _clean_text(r.get('detalle')),
-                'fecha': r.get('fecha'),
-            })
+        normalized_rows = [
+            _normalizar_fila_importacion(r, indice, permitir_estado_legado=True)
+            for indice, r in enumerate(rows, start=1)
+        ]
         payload = {'objetos_lugar': normalized_rows}
         return render(request, 'excel/carga_masiva.html', {'step': 'preview', 'payload': payload, 'detected': detected})
     except Exception as e:
