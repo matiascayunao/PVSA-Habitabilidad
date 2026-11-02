@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 from django.contrib import messages
@@ -18,7 +17,7 @@ from django.views.decorators.http import (
     require_http_methods,
 )
 
-from .models import (
+from ..models import (
     Sector,
     Ubicacion,
     Lugar,
@@ -198,7 +197,7 @@ def detalle_incidencia(request, incidencia_id):
                     reporte.fecha_resolucion = ahora
 
             elif estado_anterior == ReporteIncidencia.Estado.RESUELTO:
-                # Si se reabre, deja de figurar como resuelto.
+                
                 reporte.fecha_resolucion = None
 
             reporte.save(

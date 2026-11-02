@@ -58,7 +58,7 @@ def consulta_qr(request, token):
     from django.utils import timezone
     from zoneinfo import ZoneInfo
 
-    from ..reporte_forms import ReportePublicoForm
+    from ..formularios.reporte_forms import ReportePublicoForm
 
     # --------------------------------------------------
     # IDENTIFICAR QR

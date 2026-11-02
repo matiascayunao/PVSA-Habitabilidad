@@ -1,7 +1,6 @@
-
 from django import forms
 
-from .models import ReporteIncidencia
+from ..models import ReporteIncidencia
 
 
 ELEMENTOS = [

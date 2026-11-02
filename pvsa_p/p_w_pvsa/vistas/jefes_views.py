@@ -1,16 +1,10 @@
-"""Vistas propias de Jefe de departamento, inicialmente de solo lectura.
-
-Las operaciones de creación/edición y el reporte interno se habilitarán
-tras incorporar sus comprobaciones por objeto y por lugar.
-"""
-
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
-from .models import ObjetoLugar
-from .pvsa_permisos import (
+from ..models import ObjetoLugar
+from ..pvsa_permisos import (
     es_jefe_departamento,
     lugares_visibles_jefe,
     puede_editar_inventario_jefe,
@@ -52,8 +46,8 @@ def panel_jefe(request):
 def detalle_lugar_jefe(request, lugar_id):
     _comprobar_jefe(request)
 
-    # La búsqueda se realiza contra el conjunto autorizado, no contra
-    # todos los lugares. Una URL ajena devolverá 404.
+    
+    
     lugar = get_object_or_404(
         lugares_visibles_jefe(request.user).select_related(
             "piso", "piso__ubicacion", "piso__ubicacion__sector", "lugar_tipo_lugar"

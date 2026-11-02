@@ -7,7 +7,8 @@ from django.shortcuts import redirect
 
 from django.urls import path as django_path, reverse
 
-from . import views, incidencias_views, jefes_views, jefes_inventario_views, superadmin_jefes_views, jefes_reportes_views
+from . import views
+from .vistas import incidencias_views, jefes_views, jefes_inventario_views, superadmin_jefes_views, jefes_reportes_views
 
 # =========================================================
 

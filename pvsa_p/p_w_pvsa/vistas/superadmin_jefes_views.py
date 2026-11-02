@@ -7,8 +7,8 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_GET
 
-from .formularios.jefaturas import CrearJefeForm, EditarJefeForm
-from .models import AsignacionLugarJefe
+from ..formularios.jefaturas import CrearJefeForm, EditarJefeForm
+from ..models import AsignacionLugarJefe
 
 
 GRUPO_JEFES = "Jefe de departamento"
@@ -20,7 +20,7 @@ def _verificar_superadmin(request):
 
 
 def _jefes_validos():
-    # Nunca administrar un superusuario ni cuentas de roles mezclados.
+    
     return (
         User.objects.filter(groups__name=GRUPO_JEFES, is_superuser=False)
         .exclude(groups__name__in=["Administrador", "Operador"])

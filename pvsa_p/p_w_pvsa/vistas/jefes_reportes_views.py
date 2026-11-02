@@ -1,10 +1,3 @@
-"""Reportes internos de jefes a través del sistema existente de incidencias.
-
-Siempre filtra en el servidor: un jefe solo reporta sobre espacios propios
-asignados o sobre áreas comunes de las ubicaciones de dichos espacios.
-El estado, origen, usuario y lugar se asignan en el servidor, nunca desde POST.
-"""
-
 from pathlib import Path
 
 from django.contrib import messages
@@ -17,9 +10,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
-from .models import ReporteIncidencia
-from .pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
-from .reporte_forms import ReportePublicoForm
+from ..models import ReporteIncidencia
+from ..pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
+from ..formularios.reporte_forms import ReportePublicoForm
 
 
 def _exigir_jefe(usuario):
@@ -35,8 +28,8 @@ def _exigir_jefe(usuario):
 def reportar_incidencia_jefe(request, lugar_id):
     _exigir_jefe(request.user)
 
-    # Comprobación en GET y en POST, independiente del menú visual.
-    # El QR no determina los permisos del jefe.
+    
+    
     lugar = get_object_or_404(
         lugares_visibles_jefe(request.user).select_related(
             "piso", "piso__ubicacion", "piso__ubicacion__sector"
@@ -49,7 +42,7 @@ def reportar_incidencia_jefe(request, lugar_id):
 
         if form.is_valid():
             with transaction.atomic():
-                # Revalidar los permisos justo antes del guardado.
+                
                 if not lugares_visibles_jefe(request.user).filter(
                     pk=lugar.pk
                 ).exists():
@@ -69,7 +62,7 @@ def reportar_incidencia_jefe(request, lugar_id):
                     else opcion
                 )
 
-                # Segunda validación del modelo, igual que en el QR público.
+                
                 reporte.full_clean()
                 reporte.save()
 
@@ -95,7 +88,7 @@ def reportar_incidencia_jefe(request, lugar_id):
 def mis_reportes_jefe(request):
     _exigir_jefe(request.user)
 
-    # Historial propio, aunque en el futuro cambien las asignaciones.
+    
     reportes = (
         ReporteIncidencia.objects.filter(
             reportado_por=request.user,
@@ -115,8 +108,8 @@ def mis_reportes_jefe(request):
 def foto_reporte_jefe(request, reporte_id):
     _exigir_jefe(request.user)
 
-    # Solo se entrega la foto de reportes realizados por el jefe autenticado.
-    # Ni el número del reporte ni la URL del fichero conceden permisos.
+    
+    
     reporte = get_object_or_404(
         ReporteIncidencia.objects.filter(
             reportado_por=request.user,
