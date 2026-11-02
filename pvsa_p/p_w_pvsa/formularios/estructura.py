@@ -563,6 +563,7 @@ class ObjetoLugarFilaForm(forms.Form):
     )
     detalle = forms.CharField(
         label="Detalle",
+        max_length=200,
         required=False,
         widget=forms.TextInput(
             attrs={"class": "form-control form-control-sm"}

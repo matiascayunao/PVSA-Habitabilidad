@@ -72,6 +72,7 @@ def crear_objeto_jefe(request, lugar_id):
                 pk=lugar_id,
             )
             form = CrearObjetoLugar(request.POST)
+            form.instance.lugar = lugar
             form.fields["tipo_de_objeto"].required = True
             if form.is_valid():
                 objeto = form.save(commit=False)

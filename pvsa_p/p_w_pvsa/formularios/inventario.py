@@ -55,7 +55,9 @@ class CrearObjetoLugar(forms.ModelForm):
         cantidad = cleaned.get("cantidad") or 0
         cantidad_mala = cleaned.get("cantidad_mala") or 0
         cantidad_pendiente = cleaned.get("cantidad_pendiente") or 0
-        minimo_operativo = cleaned.get("minimo_operativo") or 1
+        minimo_operativo = cleaned.get("minimo_operativo")
+        if minimo_operativo is None:
+            minimo_operativo = 1
 
         if cantidad <= 0:
             raise forms.ValidationError("La cantidad total debe ser mayor a 0.")
@@ -223,7 +225,9 @@ class EditarObjetoLugar(forms.ModelForm):
         cantidad = cleaned.get("cantidad") or 0
         cantidad_mala = cleaned.get("cantidad_mala") or 0
         cantidad_pendiente = cleaned.get("cantidad_pendiente") or 0
-        minimo_operativo = cleaned.get("minimo_operativo") or 1
+        minimo_operativo = cleaned.get("minimo_operativo")
+        if minimo_operativo is None:
+            minimo_operativo = 1
 
         if cantidad <= 0:
             raise forms.ValidationError("La cantidad total debe ser mayor a 0.")

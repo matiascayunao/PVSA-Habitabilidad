@@ -1124,6 +1124,15 @@ class ObjetoLugar(models.Model):
 
         super().clean()
 
+        if self.lugar_id and self.tipo_de_objeto_id:
+            duplicados = type(self).objects.filter(
+                lugar_id=self.lugar_id, tipo_de_objeto_id=self.tipo_de_objeto_id,
+            ).exclude(pk=self.pk)
+            if duplicados.exists():
+                raise ValidationError({
+                    "tipo_de_objeto": "Esta variante ya está registrada en este lugar.",
+                })
+
 
 
         cantidad = self.cantidad or 0
@@ -1138,7 +1147,7 @@ class ObjetoLugar(models.Model):
 
         minimo_operativo = (
 
-            self.minimo_operativo or 1
+            self.minimo_operativo if self.minimo_operativo is not None else 1
 
         )
 
@@ -1230,6 +1239,14 @@ class ObjetoLugar(models.Model):
 
 
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lugar", "tipo_de_objeto"],
+                name="pvsa_inventario_lugar_variante_unico",
+            ),
+        ]
+
     # -----------------------------------------------------
 
     # GUARDADO + HISTÓRICO AUTOMÁTICO
@@ -1238,6 +1255,7 @@ class ObjetoLugar(models.Model):
 
 
 
+    @transaction.atomic
     def save(self, *args, **kwargs):
 
         """
@@ -1264,7 +1282,7 @@ class ObjetoLugar(models.Model):
 
         if self.pk:
 
-            anterior = ObjetoLugar.objects.filter(
+            anterior = ObjetoLugar.objects.select_for_update().filter(
 
                 pk=self.pk
 

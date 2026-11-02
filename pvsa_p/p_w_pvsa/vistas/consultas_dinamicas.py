@@ -15,15 +15,23 @@ from ..models import ObjetoLugar
 from ..models import TipoLugarObjetoTipico
 
 
+def _id_consulta(valor):
+    try:
+        numero = int(valor)
+    except (TypeError, ValueError):
+        return None
+    return numero if 0 < numero <= 9223372036854775807 else None
+
+
 def ajax_ubicaciones_por_sector(request):
-    sector_id = request.GET.get("sector_id")
+    sector_id = _id_consulta(request.GET.get("sector_id"))
     qs = Ubicacion.objects.filter(sector_id=sector_id).order_by("ubicacion")
     data = [{"id": u.id, "nombre": u.ubicacion} for u in qs]
     return JsonResponse(data, safe=False)
 
 
 def ajax_pisos_por_ubicacion(request):
-    ubicacion_id = request.GET.get("ubicacion_id")
+    ubicacion_id = _id_consulta(request.GET.get("ubicacion_id"))
     qs = Piso.objects.filter(ubicacion_id=ubicacion_id).order_by("piso")
     data = [{"id": p.id, "nombre": f"Piso {p.piso}"} for p in qs]
     return JsonResponse(data, safe=False)
@@ -47,7 +55,7 @@ def ajax_lugares_por_piso(request):
 
 
 def ajax_objetos_por_categoria(request):
-    categoria_id = request.GET.get("categoria_id")
+    categoria_id = _id_consulta(request.GET.get("categoria_id"))
     qs = Objeto.objects.filter(objeto_categoria_id=categoria_id).order_by(
         "nombre_del_objeto"
     )
@@ -56,7 +64,7 @@ def ajax_objetos_por_categoria(request):
 
 
 def ajax_tipos_por_objeto(request):
-    objeto_id = request.GET.get("objeto_id")
+    objeto_id = _id_consulta(request.GET.get("objeto_id"))
     qs = TipoObjeto.objects.filter(objeto_id=objeto_id).order_by("marca", "material")
     data = [
         {
@@ -193,8 +201,6 @@ def objetos_tipicos_por_tipo_lugar(request, tipo_lugar_pk):
                             defaults={"objeto_categoria": categoria_obj},
                         )
 
-                        if obj.objeto_categoria_id != categoria_obj.id:
-                            categoria_obj = obj.objeto_categoria
 
                         tipo_objeto, _ = TipoObjeto.objects.get_or_create(
                             objeto=obj,

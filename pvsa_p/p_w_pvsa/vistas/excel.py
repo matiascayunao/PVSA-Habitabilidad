@@ -84,7 +84,7 @@ def _entero_importacion(valor, campo, fila, predeterminado=None):
 
 def _importancia_importacion(valor, fila):
     if valor is None or (isinstance(valor, str) and not valor.strip()):
-        return 1
+        raise ValueError(f'Fila {fila}: el campo "Importancia" debe indicarse explícitamente (Baja, Media o Alta / Crítica).')
     try:
         numero = _entero_importacion(valor, 'Importancia', fila)
         if numero in (1, 2, 3):
@@ -108,10 +108,29 @@ def _normalizar_fila_importacion(fila_datos, numero_fila, *, permitir_estado_leg
     if not isinstance(fila_datos, dict):
         raise ValueError(f'Fila {numero_fila}: formato de datos no válido.')
 
+    # Una importación actualiza los inventarios existentes. Nunca se deben
+    # interpretar campos operativos omitidos como 0, 1 ni reconstruirlos desde
+    # el estado B/P/M: el estado no contiene los contadores exactos.
+    campos_operativos = (
+        ('cantidad_mala', 'Con falla'),
+        ('cantidad_pendiente', 'Por revisar'),
+        ('minimo_operativo', 'Mínimo operativo'),
+        ('importancia', 'Importancia'),
+    )
+    for clave, etiqueta in campos_operativos:
+        valor = fila_datos.get(clave)
+        if valor is None or (isinstance(valor, str) and not valor.strip()):
+            raise ValueError(
+                f'Fila {numero_fila}: falta "{etiqueta}". '
+                'Para evitar sobrescribir datos del inventario con valores supuestos, '
+                'completa Con falla, Por revisar, Mínimo operativo e Importancia. '
+                'Escribe 0 explícitamente si no hay unidades con falla o por revisar.'
+            )
+
     cantidad = _entero_importacion(fila_datos.get('cantidad'), 'Cantidad total', numero_fila)
-    malas = _entero_importacion(fila_datos.get('cantidad_mala'), 'Con falla', numero_fila, 0)
-    pendientes = _entero_importacion(fila_datos.get('cantidad_pendiente'), 'Por revisar', numero_fila, 0)
-    minimo = _entero_importacion(fila_datos.get('minimo_operativo'), 'Mínimo operativo', numero_fila, 1)
+    malas = _entero_importacion(fila_datos.get('cantidad_mala'), 'Con falla', numero_fila)
+    pendientes = _entero_importacion(fila_datos.get('cantidad_pendiente'), 'Por revisar', numero_fila)
+    minimo = _entero_importacion(fila_datos.get('minimo_operativo'), 'Mínimo operativo', numero_fila)
     importancia = _importancia_importacion(fila_datos.get('importancia'), numero_fila)
 
     if cantidad <= 0:
@@ -121,12 +140,9 @@ def _normalizar_fila_importacion(fila_datos, numero_fila, *, permitir_estado_leg
     if minimo < 1 or minimo > cantidad:
         raise ValueError(f'Fila {numero_fila}: el mínimo operativo debe estar entre 1 y la cantidad total.')
 
-    estado_original = _clean_text(fila_datos.get('estado')).lower()
-    if permitir_estado_legado and not fila_datos.get('__contadores_presentes__', True) and malas == 0 and pendientes == 0:
-        if estado_original in ('m', 'malo', 'con fallas', 'con falla', 'con unidades malas'):
-            malas = cantidad
-        elif estado_original in ('p', 'pendiente', 'con pendientes', 'por revisar'):
-            pendientes = cantidad
+    # Se conserva el argumento permitir_estado_legado para compatibilidad
+    # con las llamadas existentes, pero no se reconstruyen cifras a partir
+    # de un estado legado. Si faltan cifras, el archivo ya fue rechazado.
 
     if malas + pendientes > cantidad:
         raise ValueError(
@@ -137,6 +153,25 @@ def _normalizar_fila_importacion(fila_datos, numero_fila, *, permitir_estado_leg
     campos_texto = ('sector', 'ubicacion', 'piso', 'tipo_de_lugar', 'lugar',
                     'categoria', 'objeto', 'tipo_objeto', 'marca', 'material', 'detalle')
     resultado = {campo: _clean_text(fila_datos.get(campo)) for campo in campos_texto}
+    # El Excel exportado presenta la variante como "Marca - Material".
+    # Cada componente admite hasta 100 caracteres, por lo que el texto
+    # compuesto puede ocupar 203 (100 + 3 del separador + 100).
+    for campo in campos_texto:
+        limite = 200 if campo == 'detalle' else (203 if campo == 'tipo_objeto' else 100)
+        if len(resultado[campo]) > limite:
+            raise ValueError(f'Fila {numero_fila}: "{campo}" no puede superar {limite} caracteres.')
+
+    # En el formato exportado, marca/material se obtienen de "tipo_objeto".
+    # Verificar también cada componente, no solo la longitud del conjunto:
+    # una marca de 120 caracteres no es válida aunque el total sea < 203.
+    # Separar textos legados una sola vez, antes de mostrar la previsualización.
+    # Si marca y/o material están presentes (aunque vacíos), respetar la
+    # edición explícita: el usuario podría haber borrado ambos componentes.
+    if 'marca' not in fila_datos and 'material' not in fila_datos:
+        resultado['marca'], resultado['material'] = _split_tipo(resultado['tipo_objeto'])
+    for campo in ('marca', 'material'):
+        if len(resultado[campo]) > 100:
+            raise ValueError(f'Fila {numero_fila}: "{campo}" no puede superar 100 caracteres.')
     for campo, etiqueta in (
         ('sector', 'Sector'), ('ubicacion', 'Ubicación'),
         ('lugar', 'Lugar'), ('objeto', 'Objeto'),
@@ -205,7 +240,7 @@ HEADER_ALIASES = {
 }
 REQUIRED_HEADERS_NORMALIZADO = {'ubicacion', 'sector', 'lugar', 'objeto', 'cantidad'}
 RE_SECTOR_UBI = re.compile('sector:\\s*(.*?)\\s*\\|\\s*ubicaci[oó]n:\\s*(.*)', re.IGNORECASE)
-RE_PISO = re.compile('^\\s*piso\\s*\\d+', re.IGNORECASE)
+RE_PISO = re.compile(r'^\s*piso\s*[+-]?\d+\s*$', re.IGNORECASE)
 RE_TIPO_LUGAR = re.compile('^\\s*tipo\\s*de\\s*lugar\\s*:\\s*(.*)$', re.IGNORECASE)
 
 def _row_first_text(ws, r: int) -> str:
@@ -243,6 +278,24 @@ def _parse_normalizado(wb):
             break
     if not header_row:
         return []
+
+    requeridos = (
+        ('cantidad_mala', 'Con falla'),
+        ('cantidad_pendiente', 'Por revisar'),
+        ('minimo_operativo', 'Mínimo operativo'),
+        ('importancia', 'Importancia'),
+    )
+    disponibles = set(header_map.values())
+    faltantes = [nombre for clave, nombre in requeridos if clave not in disponibles]
+    if faltantes:
+        raise ValueError(
+            'Este Excel de carga masiva no incluye las columnas obligatorias: '
+            + ', '.join(faltantes) + '. '
+            'No se puede calcular cuántas unidades están con falla o por revisar '
+            'a partir del estado. Descarga la plantilla actualizada y completa '
+            'los cuatro campos operativos para importar sin alterar inventarios.'
+        )
+
     rows = []
     for r in range(header_row + 1, ws.max_row + 1):
         if not any((ws.cell(r, c).value not in (None, '') for c in range(1, ws.max_column + 1))):
@@ -250,6 +303,13 @@ def _parse_normalizado(wb):
         rec = {}
         for col, key in header_map.items():
             rec[key] = ws.cell(r, col).value
+        # La plantilla moderna separa marca/material. En hojas normalizadas
+        # antiguas sin esas columnas, interpretamos la variante una sola vez
+        # antes de permitir su edición en pantalla.
+        marca_val = _clean_text(rec.get('marca'))
+        material_val = _clean_text(rec.get('material'))
+        if 'marca' not in header_map.values() and 'material' not in header_map.values():
+            marca_val, material_val = _split_tipo(_clean_text(rec.get('tipo_objeto')))
         rows.append({
             'ubicacion': _clean_text(rec.get('ubicacion')),
             'sector': _clean_text(rec.get('sector')),
@@ -259,14 +319,14 @@ def _parse_normalizado(wb):
             'categoria': _clean_text(rec.get('categoria')) or 'Sin categoría',
             'objeto': _clean_text(rec.get('objeto')),
             'tipo_objeto': _clean_text(rec.get('tipo_objeto')),
-            'marca': _clean_text(rec.get('marca')),
-            'material': _clean_text(rec.get('material')),
+            'marca': marca_val,
+            'material': material_val,
             'cantidad': rec.get('cantidad') if rec.get('cantidad') is not None else 0,
             '__contadores_presentes__': any(k in ('cantidad_mala', 'cantidad_pendiente') for k in header_map.values()),
-            'cantidad_mala': rec.get('cantidad_mala') if rec.get('cantidad_mala') is not None else 0,
-            'cantidad_pendiente': rec.get('cantidad_pendiente') if rec.get('cantidad_pendiente') is not None else 0,
-            'minimo_operativo': rec.get('minimo_operativo') if rec.get('minimo_operativo') is not None else 1,
-            'importancia': rec.get('importancia') if rec.get('importancia') is not None else 1,
+            'cantidad_mala': rec.get('cantidad_mala'),
+            'cantidad_pendiente': rec.get('cantidad_pendiente'),
+            'minimo_operativo': rec.get('minimo_operativo'),
+            'importancia': rec.get('importancia'),
             'estado': _clean_text(rec.get('estado')),
             'detalle': _clean_text(rec.get('detalle')),
             'fecha': rec.get('fecha'),
@@ -302,6 +362,16 @@ def _parse_exportado(wb):
                     mapped.append((c, key))
             keys = set((k for _, k in mapped))
             if {'objeto', 'cantidad'}.issubset(keys):
+                required = {'cantidad_mala', 'cantidad_pendiente', 'minimo_operativo', 'importancia'}
+                faltantes = required - keys
+                if faltantes:
+                    raise ValueError(
+                        'Este Excel exportado es de una versión anterior y no conserva '
+                        'los valores exactos de fallas, pendientes, mínimo e importancia. '
+                        'Para evitar modificar inventarios por accidente, no se puede '
+                        'reimportar automáticamente. Exporta un archivo actualizado desde '
+                        'PVSA o utiliza la plantilla de carga masiva con esos datos completos.'
+                    )
                 header_map = {col: key for col, key in mapped}
                 lugar = ''
                 for back in (1, 2, 3, 4):
@@ -321,6 +391,10 @@ def _parse_exportado(wb):
                 col_categoria = next((c for c, k in header_map.items() if k == 'categoria'), None)
                 col_objeto = next((c for c, k in header_map.items() if k == 'objeto'), None)
                 col_tipo = next((c for c, k in header_map.items() if k == 'tipo_objeto'), None)
+                # Las exportaciones nuevas conservan ambos componentes en
+                # columnas ocultas. Las antiguas, sin ellas, siguen siendo legibles.
+                col_marca = next((c for c, k in header_map.items() if k == 'marca'), None)
+                col_material = next((c for c, k in header_map.items() if k == 'material'), None)
                 col_cantidad = next((c for c, k in header_map.items() if k == 'cantidad'), None)
                 col_mala = next((c for c, k in header_map.items() if k == 'cantidad_mala'), None)
                 col_pendiente = next((c for c, k in header_map.items() if k == 'cantidad_pendiente'), None)
@@ -339,14 +413,20 @@ def _parse_exportado(wb):
                         break
                     cat_val = ws.cell(rr, col_categoria).value if col_categoria else None
                     tipo_val = ws.cell(rr, col_tipo).value if col_tipo else None
+                    marca_val = ws.cell(rr, col_marca).value if col_marca else None
+                    material_val = ws.cell(rr, col_material).value if col_material else None
                     cant_val = ws.cell(rr, col_cantidad).value if col_cantidad else 0
-                    mala_val = ws.cell(rr, col_mala).value if col_mala else 0
-                    pendiente_val = ws.cell(rr, col_pendiente).value if col_pendiente else 0
-                    minimo_val = ws.cell(rr, col_minimo).value if col_minimo else 1
-                    importancia_val = ws.cell(rr, col_importancia).value if col_importancia else 1
+                    mala_val = ws.cell(rr, col_mala).value if col_mala else None
+                    pendiente_val = ws.cell(rr, col_pendiente).value if col_pendiente else None
+                    minimo_val = ws.cell(rr, col_minimo).value if col_minimo else None
+                    importancia_val = ws.cell(rr, col_importancia).value if col_importancia else None
                     est_val = ws.cell(rr, col_estado).value if col_estado else ''
                     det_val = ws.cell(rr, col_detalle).value if col_detalle else ''
                     fec_val = ws.cell(rr, col_fecha).value if col_fecha else None
+                    # Marca/material que el Excel anterior no separaba deben
+                    # mostrarse como campos editables desde el primer render.
+                    if col_marca is None and col_material is None:
+                        marca_val, material_val = _split_tipo(_clean_text(tipo_val))
                     rows.append({
                         'ubicacion': ubicacion,
                         'sector': sector,
@@ -356,12 +436,14 @@ def _parse_exportado(wb):
                         'categoria': _clean_text(cat_val) or 'Sin categoría',
                         'objeto': _clean_text(obj_val),
                         'tipo_objeto': _clean_text(tipo_val),
+                        'marca': _clean_text(marca_val),
+                        'material': _clean_text(material_val),
                         'cantidad': cant_val if cant_val is not None else 0,
                         '__contadores_presentes__': any(k in ('cantidad_mala', 'cantidad_pendiente') for k in header_map.values()),
-                        'cantidad_mala': mala_val if mala_val is not None else 0,
-                        'cantidad_pendiente': pendiente_val if pendiente_val is not None else 0,
-                        'minimo_operativo': minimo_val if minimo_val is not None else 1,
-                        'importancia': importancia_val if importancia_val is not None else 1,
+                        'cantidad_mala': mala_val,
+                        'cantidad_pendiente': pendiente_val,
+                        'minimo_operativo': minimo_val,
+                        'importancia': importancia_val,
                         'estado': _clean_text(est_val),
                         'detalle': _clean_text(det_val),
                         'fecha': fec_val,
@@ -381,7 +463,7 @@ def parse_excel(file_obj):
     rows = _parse_exportado(wb)
     if rows:
         return (rows, 'exportado')
-    raise ValueError('No pude reconocer el formato del Excel. La plantilla debe tener como mínimo las columnas: ubicacion, sector, lugar, objeto y cantidad. También puede incluir cantidad_mala, cantidad_pendiente, minimo_operativo, importancia, detalle y fecha.')
+    raise ValueError('No pude reconocer el formato del Excel. Usa la plantilla de carga masiva con Sector, Ubicación, Lugar, Objeto, Cantidad total, Con falla, Por revisar, Mínimo operativo e Importancia. También se admite el Excel exportado actual de PVSA.')
 
 def _split_tipo(tipo_str: str):
     tipo_str = (tipo_str or '').strip()
@@ -396,9 +478,18 @@ def _split_tipo(tipo_str: str):
 def import_from_rows(rows):
 
     def _piso_to_int(piso_raw):
-        s = (piso_raw or '').strip()
-        m = re.search('(\\d+)', s)
-        return int(m.group(1)) if m else 0
+        texto = str(piso_raw if piso_raw is not None else '').strip()
+        if not texto:
+            return 0  # Piso omitido: comportamiento anterior de la plantilla.
+        match = re.fullmatch(r'(?:Piso\s*)?([+-]?\d+)', texto, flags=re.IGNORECASE)
+        if not match:
+            raise ValueError(
+                f'Piso inválido: {texto!r}. Ingresa un entero, por ejemplo -1, 0, 2 o Piso -1.'
+            )
+        numero = int(match.group(1))
+        if numero < -2147483648 or numero > 2147483647:
+            raise ValueError('El número de piso está fuera del rango permitido.')
+        return numero
 
     def key(value):
         return (value or '').strip().casefold()
@@ -515,13 +606,10 @@ def import_from_rows(rows):
             # La categoría debe coincidir incluso si el objeto ya está en caché.
             if objeto_obj.objeto_categoria_id != categoria_obj.id:
                 raise ValueError(f'El objeto "{objeto}" ya existe en la categoría "{objeto_obj.objeto_categoria.nombre_de_categoria}".')
-            if marca_excel or material_excel:
-                marca = normalizar_marca(marca_excel)
-                material = normalizar_material(material_excel)
-            else:
-                marca, material = _split_tipo(tipo_objeto_str)
-                marca = normalizar_marca(marca)
-                material = normalizar_material(material)
+            # La previsualización envía marca/material explícitos: aunque
+            # estén vacíos, nunca deben reconstruirse desde tipo_objeto.
+            marca = normalizar_marca(marca_excel)
+            material = normalizar_material(material_excel)
             variante_key = (objeto_obj.id, key(marca), key(material))
             if variante_key in cache_variante:
                 tipo_obj = cache_variante[variante_key]

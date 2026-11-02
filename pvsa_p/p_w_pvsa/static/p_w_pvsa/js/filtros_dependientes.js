@@ -91,7 +91,9 @@
     return params;
   }
 
+  let ultimaSolicitud = 0;
   async function actualizarFiltros() {
+    const solicitud = ++ultimaSolicitud;
     try {
       const params = buildParams();
       const response = await fetch(`${url}?${params.toString()}`, {
@@ -103,6 +105,7 @@
       if (!response.ok) return;
 
       const data = await response.json();
+      if (solicitud !== ultimaSolicitud) return;
 
       setOptions(selects.ubicacion, data.ubicaciones, "Todas las ubicaciones");
       setOptions(selects.piso, data.pisos, "Todos los pisos");

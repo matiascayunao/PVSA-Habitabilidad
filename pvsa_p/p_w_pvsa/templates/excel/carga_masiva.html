@@ -514,7 +514,7 @@
 
                         <input class="form-control form-control-sm inputflat text-center cantidadTotal" data-k="cantidad"
 
-                               type="number" min="0" value="{{ r.cantidad|default_if_none:0 }}">
+                               type="number" min="1" required value="{{ r.cantidad|default_if_none:'' }}">
 
                       </td>
 
@@ -522,7 +522,7 @@
 
                         <input class="form-control form-control-sm inputflat text-center cantidadMala" data-k="cantidad_mala"
 
-                               type="number" min="0" value="{{ r.cantidad_mala|default_if_none:0 }}">
+                               type="number" min="0" required value="{{ r.cantidad_mala|default_if_none:'' }}">
 
                       </td>
 
@@ -530,7 +530,7 @@
 
                         <input class="form-control form-control-sm inputflat text-center cantidadPendiente" data-k="cantidad_pendiente"
 
-                               type="number" min="0" value="{{ r.cantidad_pendiente|default_if_none:0 }}">
+                               type="number" min="0" required value="{{ r.cantidad_pendiente|default_if_none:'' }}">
 
                       </td>
 
@@ -538,15 +538,17 @@
 
                         <input class="form-control form-control-sm inputflat text-center minimoOperativo" data-k="minimo_operativo"
 
-                               type="number" min="1" value="{{ r.minimo_operativo|default_if_none:1 }}">
+                               type="number" min="1" required value="{{ r.minimo_operativo|default_if_none:'' }}">
 
                       </td>
 
                       <td data-col="importancia" data-label="Importancia">
 
-                        <select class="form-select form-select-sm inputflat importanciaSel" data-k="importancia">
+                        <select class="form-select form-select-sm inputflat importanciaSel" data-k="importancia" required>
 
-                          {% with imp=r.importancia|default_if_none:1 %}
+                          {% with imp=r.importancia|default_if_none:'' %}
+
+                            <option value="" {% if imp == '' %}selected{% endif %}>Selecciona importancia</option>
 
                             <option value="1" {% if imp == 1 or imp == "1" %}selected{% endif %}>Baja</option>
 
@@ -1320,36 +1322,6 @@
 
   const filterStatus = document.getElementById("filterStatus");
 
-  function completarVarianteLegada(tr){
-
-    if (!tr) return;
-
-    const tipo = tr.querySelector('[data-k="tipo_objeto"]');
-
-    const marca = tr.querySelector('[data-k="marca"]');
-
-    const material = tr.querySelector('[data-k="material"]');
-
-    if (!tipo || !marca || !material) return;
-
-    if ((marca.value || "").trim() || (material.value || "").trim()) return;
-
-    const texto = (tipo.value || "").trim();
-
-    if (!texto) return;
-
-    if (texto.includes(" - ")) {
-
-      const partes = texto.split(" - ");
-
-      marca.value = (partes.shift() || "").trim();
-
-      material.value = partes.join(" - ").trim();
-
-    }
-
-  }
-
   function paintEstado(select){
 
     if (!select) return;
@@ -1381,9 +1353,9 @@
   function recalcularEstadoFila(tr){
     if (!tr) return;
     const total = leerEntero(tr.querySelector('[data-k="cantidad"]'));
-    const malas = leerEntero(tr.querySelector('[data-k="cantidad_mala"]'), 0);
-    const pendientes = leerEntero(tr.querySelector('[data-k="cantidad_pendiente"]'), 0);
-    const minimo = leerEntero(tr.querySelector('[data-k="minimo_operativo"]'), 1);
+    const malas = leerEntero(tr.querySelector('[data-k="cantidad_mala"]'));
+    const pendientes = leerEntero(tr.querySelector('[data-k="cantidad_pendiente"]'));
+    const minimo = leerEntero(tr.querySelector('[data-k="minimo_operativo"]'));
     const estadoEl = tr.querySelector('[data-k="estado"]');
 
     const valido = Number.isSafeInteger(total) && total > 0 &&
@@ -1432,7 +1404,6 @@
 
     tabla.querySelectorAll("tbody tr").forEach(tr => {
 
-      completarVarianteLegada(tr);
 
       recalcularEstadoFila(tr);
 
@@ -1861,9 +1832,10 @@
         const objeto = (tr.querySelector('[data-k="objeto"]')?.value || "").trim();
 
         const total = leerEntero(tr.querySelector('[data-k="cantidad"]'));
-        const falla = leerEntero(tr.querySelector('[data-k="cantidad_mala"]'), 0);
-        const revisar = leerEntero(tr.querySelector('[data-k="cantidad_pendiente"]'), 0);
-        const minimo = leerEntero(tr.querySelector('[data-k="minimo_operativo"]'), 1);
+        const falla = leerEntero(tr.querySelector('[data-k="cantidad_mala"]'));
+        const revisar = leerEntero(tr.querySelector('[data-k="cantidad_pendiente"]'));
+        const minimo = leerEntero(tr.querySelector('[data-k="minimo_operativo"]'));
+        const importancia = (tr.querySelector('[data-k="importancia"]')?.value || "").trim();
 
         const invalida =
 
@@ -1879,6 +1851,7 @@
           !Number.isSafeInteger(falla) || falla < 0 ||
           !Number.isSafeInteger(revisar) || revisar < 0 ||
           !Number.isSafeInteger(minimo) || minimo < 1 ||
+          !["1", "2", "3"].includes(importancia) ||
           falla + revisar > total || minimo > total;
 
         if (invalida) {
@@ -1901,7 +1874,7 @@
 
             'Hay <strong>' + filasInvalidas + '</strong> fila(s) que necesitan revisión. ' +
 
-            'Comprueba Sector, Ubicación, Lugar, Objeto, Cantidad total, Con falla, Por revisar y Mínimo operativo.';
+            'Comprueba Sector, Ubicación, Lugar, Objeto, Cantidad total, Con falla, Por revisar, Mínimo operativo e Importancia. Los campos numéricos no pueden estar vacíos.';
 
           validationAlert.classList.remove("d-none");
 
@@ -1942,8 +1915,7 @@
 
       trs.forEach(tr => {
 
-        completarVarianteLegada(tr);
-
+  
         recalcularEstadoFila(tr);
 
         const obj = {};
@@ -1968,9 +1940,9 @@
 
           ) {
 
-            const valorPorDefecto = k === "minimo_operativo" ? 1 : 0;
-            const numero = v === "" ? valorPorDefecto : Number(v);
-            v = numero;
+            // Un campo vacío NO equivale a 0 ni a 1: el servidor exige
+            // que los cuatro valores operativos se indiquen expresamente.
+            v = v === "" ? null : Number(v);
           }
 
           obj[k] = v;

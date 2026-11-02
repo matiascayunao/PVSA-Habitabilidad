@@ -43,6 +43,13 @@ VISIBLE = {
 MAX_COL = 13 # hasta M
 
 
+def _celda_texto(ws, fila, columna, valor):
+    """Export catalog/user text as literal strings, never Excel formulas."""
+    celda = ws.cell(fila, columna, valor)
+    celda.data_type = "s"
+    return celda
+
+
 def _safe_sheet_name(name: str) -> str:
     bad = [":", "\\", "/", "?", "*", "[", "]"]
     for ch in bad:
@@ -78,6 +85,11 @@ def _set_col_widths(ws):
     # separadores ocultos (0 ancho / hidden)
     for col in ["B", "D", "F", "H", "J", "L"]:
         ws.column_dimensions[col].width = 2
+        ws.column_dimensions[col].hidden = True
+
+    # Datos técnicos para reimportar variantes sin ambigüedad.
+    # No cambian las columnas visibles A:M ni el diseño existente.
+    for col in ("N", "O", "P", "Q", "R", "S"):
         ws.column_dimensions[col].hidden = True
 
 
@@ -160,7 +172,7 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
     lugar_row = start_row + 1
 
     ws.merge_cells(start_row=lugar_row, start_column=1, end_row=lugar_row, end_column=MAX_COL)
-    t = ws.cell(lugar_row, 1, lugar.nombre_del_lugar)
+    t = _celda_texto(ws, lugar_row, 1, lugar.nombre_del_lugar)
     t.font = Font(bold=True, size=12)
     t.alignment = CENTER
     _style_row(ws, lugar_row, 1, MAX_COL, fill=FILL_TITLE, font=Font(bold=True, size=12), align=CENTER)
@@ -188,6 +200,19 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
 
     # bordes/estilo en toda la franja (incluye separadores ocultos)
     _style_row(ws, hr, 1, MAX_COL, fill=FILL_TITLE, font=FONT_HDR, align=CENTER)
+
+    # Los datos operativos se guardan en columnas ocultas. A:M conservan
+    # exactamente la presentación histórica, pero al reimportar no se
+    # adivinan cantidades ni variantes a partir del estado o de guiones.
+    for columna, etiqueta in (
+        (14, "Marca"),
+        (15, "Material"),
+        (16, "Con falla"),
+        (17, "Por revisar"),
+        (18, "Mínimo operativo"),
+        (19, "Importancia"),
+    ):
+        ws.cell(hr, columna, etiqueta)
     _set_row_level(ws, hr, 2)
 
     r = hr + 1
@@ -200,9 +225,16 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
         objeto_nombre = ol.tipo_de_objeto.objeto.nombre_del_objeto
         tipo_txt2 = _tipo_txt(ol)
 
-        ws.cell(r, VISIBLE["CAT"], categoria).font = FONT_CELL
-        ws.cell(r, VISIBLE["OBJ"], objeto_nombre).font = FONT_CELL
-        ws.cell(r, VISIBLE["TIP"], tipo_txt2).font = FONT_CELL
+        _celda_texto(ws, r, VISIBLE["CAT"], categoria).font = FONT_CELL
+        _celda_texto(ws, r, VISIBLE["OBJ"], objeto_nombre).font = FONT_CELL
+        _celda_texto(ws, r, VISIBLE["TIP"], tipo_txt2).font = FONT_CELL
+        # Marca y material se guardan por separado para una ida y vuelta exacta.
+        _celda_texto(ws, r, 14, (ol.tipo_de_objeto.marca or "").strip())
+        _celda_texto(ws, r, 15, (ol.tipo_de_objeto.material or "").strip())
+        ws.cell(r, 16, ol.cantidad_mala)
+        ws.cell(r, 17, ol.cantidad_pendiente)
+        ws.cell(r, 18, ol.minimo_operativo)
+        ws.cell(r, 19, ol.importancia)
         ws.cell(r, VISIBLE["CAN"], ol.cantidad).font = FONT_CELL
 
         estado = ol.get_estado_display()
@@ -216,7 +248,7 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
         elif estado == "Malo":
             estado_cell.fill = FILL_ESTADO_MALO
 
-        ws.cell(r, VISIBLE["DET"], ol.detalle or "-").font = FONT_CELL
+        _celda_texto(ws, r, VISIBLE["DET"], ol.detalle or "-").font = FONT_CELL
 
         cfecha = ws.cell(r, VISIBLE["FEC"], ol.fecha)
         cfecha.number_format = "dd/mm/yyyy"
@@ -254,8 +286,13 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
 def build_excel_sectores(ubicaciones_qs):
     wb = Workbook()
     wb.remove(wb.active)
+    ubicaciones = list(ubicaciones_qs)
+    if not ubicaciones:
+        ws = wb.create_sheet(title="Sin ubicaciones")
+        _celda_texto(ws, 1, 1, "No existen ubicaciones para exportar.")
+        ws.column_dimensions["A"].width = 45
 
-    for ub in ubicaciones_qs:
+    for ub in ubicaciones:
         sheet_name = _unique_sheet_name(wb, f"{ub.sector.sector} - {ub.ubicacion}")
         ws = wb.create_sheet(title=sheet_name)
         
@@ -450,6 +487,10 @@ def build_excel_plantilla_carga_masiva():
             "Lugar",
             "Objeto",
             "Cantidad total",
+            "Con falla",
+            "Por revisar",
+            "Mínimo operativo",
+            "Importancia",
         ]:
             cell.fill = FILL_REQ
         else:
@@ -567,7 +608,7 @@ def build_excel_plantilla_carga_masiva():
         type="whole",
         operator="greaterThanOrEqual",
         formula1="0",
-        allow_blank=True,
+        allow_blank=False,
     )
     ws.add_data_validation(dv_falla)
     dv_falla.add("K4:K2000")
@@ -576,7 +617,7 @@ def build_excel_plantilla_carga_masiva():
         type="whole",
         operator="greaterThanOrEqual",
         formula1="0",
-        allow_blank=True,
+        allow_blank=False,
     )
     ws.add_data_validation(dv_revisar)
     dv_revisar.add("L4:L2000")
@@ -585,7 +626,7 @@ def build_excel_plantilla_carga_masiva():
         type="whole",
         operator="greaterThanOrEqual",
         formula1="1",
-        allow_blank=True,
+        allow_blank=False,
     )
     ws.add_data_validation(dv_minimo)
     dv_minimo.add("M4:M2000")
@@ -593,7 +634,7 @@ def build_excel_plantilla_carga_masiva():
     dv_importancia = DataValidation(
         type="list",
         formula1='"Baja,Media,Alta / Crítica"',
-        allow_blank=True,
+        allow_blank=False,
     )
     ws.add_data_validation(dv_importancia)
     dv_importancia.add("N4:N2000")
@@ -614,17 +655,17 @@ def build_excel_plantilla_carga_masiva():
         "• Ubicación\n"
         "• Lugar\n"
         "• Objeto\n"
-        "• Cantidad total\n\n"
+        "• Cantidad total\n"
+        "• Con falla (escribe 0 si no hay)\n"
+        "• Por revisar (escribe 0 si no hay)\n"
+        "• Mínimo operativo\n"
+        "• Importancia\n\n"
         "OPCIONAL:\n"
         "• Piso\n"
         "• Tipo de lugar\n"
         "• Categoría\n"
         "• Marca\n"
         "• Material\n"
-        "• Con falla\n"
-        "• Por revisar\n"
-        "• Mínimo operativo\n"
-        "• Importancia\n"
         "• Detalle\n\n"
         "ESTADO:\n"
         "No se escribe manualmente.\n"
@@ -636,6 +677,9 @@ def build_excel_plantilla_carga_masiva():
         "Marca y material permiten diferenciar variantes "
         "del mismo objeto.\n"
         "Puedes dejar ambos vacíos si no corresponde.\n\n"
+        "Al importar, PVSA no deduce contadores desde el Estado. "
+        "Completa los cuatro valores operativos para evitar modificar "
+        "inventarios existentes con números inventados.\n\n"
         "No cambies los nombres de los encabezados."
     )
 
@@ -664,5 +708,4 @@ def build_excel_plantilla_carga_masiva():
     bio.seek(0)
 
     return bio.getvalue()
-
 

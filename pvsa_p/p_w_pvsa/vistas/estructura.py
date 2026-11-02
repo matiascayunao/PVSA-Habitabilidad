@@ -20,8 +20,15 @@ def _clave_estructura(valor):
     return " ".join((valor or "").split()).casefold()
 
 
-def _validar_repetidos_estructura(formset):
-    """Evita conflictos entre filas que cada formulario aislado no detecta."""
+def _validar_repetidos_estructura(formset, lugar_existente=None):
+    """Evita duplicados en el envío y en el inventario ya registrado."""
+    variantes_en_lugar = set()
+    if lugar_existente is not None:
+        variantes_en_lugar = set(
+            ObjetoLugar.objects.filter(lugar=lugar_existente)
+            .exclude(tipo_de_objeto__isnull=True)
+            .values_list("tipo_de_objeto_id", flat=True)
+        )
     objetos_nuevos = {}
     inventarios_por_variante = {}
     es_valido = True
@@ -36,6 +43,14 @@ def _validar_repetidos_estructura(formset):
         objeto_existente = datos.get("objeto_existente")
         objeto_nuevo = _clave_estructura(datos.get("objeto_nuevo"))
         variante_existente = datos.get("tipo_objeto_existente")
+
+        if variante_existente and variante_existente.pk in variantes_en_lugar:
+            fila.add_error(
+                "tipo_objeto_existente",
+                "Esta variante ya está registrada en el lugar seleccionado. "
+                "Edita el inventario existente en lugar de duplicarlo.",
+            )
+            es_valido = False
 
         if objeto_existente and categoria_nueva:
             fila.add_error(
@@ -108,7 +123,9 @@ def crear_estructura(request):
         if (
             form.is_valid()
             and objetos_formset.is_valid()
-            and _validar_repetidos_estructura(objetos_formset)
+            and _validar_repetidos_estructura(
+                objetos_formset, form.cleaned_data.get("lugar_existente")
+            )
         ):
             cd = form.cleaned_data
 

@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -300,6 +301,7 @@ def crear_objeto_lugar(request, lugar_id):
         )
 
     form = CrearObjetoLugar(request.POST)
+    form.instance.lugar = lugar
     contexto["form"] = form
 
     if form.is_valid():
@@ -365,50 +367,55 @@ def crear_objeto_lugar(request, lugar_id):
                             )
 
             if not form.errors:
-                with transaction.atomic():
-                    if not objeto:
-                        if not categoria:
-                            categoria = CategoriaObjeto.objects.create(
-                                nombre_de_categoria=categoria_nueva_nombre
+                try:
+                    with transaction.atomic():
+                        if not objeto:
+                            if not categoria:
+                                categoria = CategoriaObjeto.objects.create(
+                                    nombre_de_categoria=categoria_nueva_nombre
+                                )
+
+                            objeto = Objeto.objects.create(
+                                nombre_del_objeto=objeto_nuevo_nombre,
+                                objeto_categoria=categoria,
                             )
 
-                        objeto = Objeto.objects.create(
-                            nombre_del_objeto=objeto_nuevo_nombre,
-                            objeto_categoria=categoria,
-                        )
+                        tipos_qs = TipoObjeto.objects.filter(objeto=objeto)
 
-                    tipos_qs = TipoObjeto.objects.filter(objeto=objeto)
+                        if marca:
+                            tipos_qs = tipos_qs.filter(marca__iexact=marca)
+                        else:
+                            tipos_qs = tipos_qs.filter(
+                                Q(marca__isnull=True) | Q(marca__exact="")
+                            )
 
-                    if marca:
-                        tipos_qs = tipos_qs.filter(marca__iexact=marca)
+                        if material:
+                            tipos_qs = tipos_qs.filter(material__iexact=material)
+                        else:
+                            tipos_qs = tipos_qs.filter(
+                                Q(material__isnull=True) | Q(material__exact="")
+                            )
+
+                        tipo_objeto = tipos_qs.first()
+
+                        if not tipo_objeto:
+                            tipo_objeto = TipoObjeto.objects.create(
+                                objeto=objeto,
+                                marca=marca,
+                                material=material,
+                            )
+
+                        obj = form.save(commit=False)
+                        obj.tipo_de_objeto = tipo_objeto
+                        obj.lugar = lugar
+                        obj.save()
+                except (ValidationError, IntegrityError) as error:
+                    if isinstance(error, ValidationError):
+                        form.add_error(None, "; ".join(error.messages))
                     else:
-                        tipos_qs = tipos_qs.filter(
-                            Q(marca__isnull=True) | Q(marca__exact="")
-                        )
-
-                    if material:
-                        tipos_qs = tipos_qs.filter(material__iexact=material)
-                    else:
-                        tipos_qs = tipos_qs.filter(
-                            Q(material__isnull=True) | Q(material__exact="")
-                        )
-
-                    tipo_objeto = tipos_qs.first()
-
-                    if not tipo_objeto:
-                        tipo_objeto = TipoObjeto.objects.create(
-                            objeto=objeto,
-                            marca=marca,
-                            material=material,
-                        )
-
-                    obj = form.save(commit=False)
-                    obj.tipo_de_objeto = tipo_objeto
-                    obj.lugar = lugar
-                    obj.save()
-
-                return redirect("detalle_lugar", lugar_id=lugar.id)
-
+                        form.add_error(None, "No se pudo guardar por un conflicto de inventario. Revisa la variante y vuelve a intentarlo.")
+                else:
+                    return redirect("detalle_lugar", lugar_id=lugar.id)
         else:
             obj = form.save(commit=False)
             obj.lugar = lugar

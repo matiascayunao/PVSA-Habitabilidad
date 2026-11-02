@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -34,29 +35,34 @@ def detalle_tipo_lugar(request, tipo_lugar_id):
     tipo = get_object_or_404(TipoLugar, pk=tipo_lugar_id)
 
     if request.method == "POST":
-        ids = request.POST.getlist("tipicos")
         nuevos_ids = []
-        for x in ids:
+        invalido = False
+        for valor in request.POST.getlist("tipicos"):
             try:
-                nuevos_ids.append(int(x))
+                numero = int(valor)
+                if not 0 < numero <= 9223372036854775807:
+                    raise ValueError
             except (TypeError, ValueError):
-                pass
-
-        with transaction.atomic():
-            TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo).delete()
-            TipoLugarObjetoTipico.objects.bulk_create(
-                [
+                invalido = True
+                break
+            if numero not in nuevos_ids:
+                nuevos_ids.append(numero)
+        if not invalido:
+            validos = set(TipoObjeto.objects.filter(pk__in=nuevos_ids).values_list("pk", flat=True))
+            invalido = validos != set(nuevos_ids)
+        if invalido:
+            messages.error(request, "Selecciona únicamente variantes existentes. No se modificaron los objetos habituales.")
+        else:
+            with transaction.atomic():
+                TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo).delete()
+                TipoLugarObjetoTipico.objects.bulk_create([
                     TipoLugarObjetoTipico(
-                        tipo_lugar=tipo,
-                        tipo_objeto_id=tipo_objeto_id,
-                        activo=True,
-                        orden=i,
+                        tipo_lugar=tipo, tipo_objeto_id=tipo_id,
+                        activo=True, orden=indice,
                     )
-                    for i, tipo_objeto_id in enumerate(nuevos_ids)
-                ]
-            )
-
-        return redirect("detalle_tipo_lugar", tipo_lugar_id=tipo.id)
+                    for indice, tipo_id in enumerate(nuevos_ids)
+                ])
+            return redirect("detalle_tipo_lugar", tipo_lugar_id=tipo.id)
 
     lugares = Lugar.objects.filter(lugar_tipo_lugar=tipo).order_by("nombre_del_lugar")
 
