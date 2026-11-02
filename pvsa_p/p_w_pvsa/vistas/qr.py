@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 from ..models import Lugar
 from ..models import AccesoQR
 from ..models import ReporteIncidencia
+from ..pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
 
 
 @login_required
@@ -136,6 +137,17 @@ def consulta_qr(request, token):
             ] = request.path
 
             return redirect("signin")
+
+        # Use the same object scope as the jefe panel; QR visibility grants no
+        # additional inventory permissions. Common areas remain read/report only.
+        if es_jefe_departamento(request.user):
+            if lugares_visibles_jefe(request.user).filter(pk=lugar.pk).exists():
+                return redirect("detalle_lugar_jefe", lugar_id=lugar.pk)
+            return HttpResponse(
+                "No tienes permisos para consultar este lugar.",
+                status=403,
+                content_type="text/plain; charset=utf-8",
+            )
 
         puede_acceder = (
             request.user.is_superuser
