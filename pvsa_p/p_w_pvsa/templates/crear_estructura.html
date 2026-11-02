@@ -1252,194 +1252,102 @@
 </style>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
-
     const addBtn = document.getElementById("add-obj-btn");
-
+    const secondaryAddBtn = document.getElementById("add-obj-btn-bottom");
     const container = document.getElementById("objetos-container");
-
     const totalFormsInput = document.getElementById("id_obj-TOTAL_FORMS");
-
     const emptyFormDiv = document.getElementById("empty-form");
+    if (!addBtn || !container || !totalFormsInput || !emptyFormDiv) return;
+
+    let bloqueado = false;
 
     function renumerarTitulos() {
-
-        const titulos = container.querySelectorAll(".objeto-title");
-
-        titulos.forEach(function (titulo, idx) {
-
-            titulo.textContent = "Objeto " + (idx + 1);
-
+        container.querySelectorAll(".objeto-form").forEach(function (card, idx) {
+            const numero = idx + 1;
+            const titulo = card.querySelector(".objeto-title");
+            const distintivo = card.querySelector(".object-number");
+            if (titulo) titulo.textContent = "Objeto " + numero;
+            if (distintivo) distintivo.textContent = String(numero);
         });
-
     }
 
     function reindexForms() {
-
         const forms = container.querySelectorAll(".objeto-form");
-
         forms.forEach(function (formElem, index) {
-
             const campos = formElem.querySelectorAll("input, select, textarea, label");
-
             campos.forEach(function (el) {
-
                 if (el.name && el.name.indexOf("obj-") === 0) {
-
                     el.name = el.name.replace(/obj-(\d+)-/, "obj-" + index + "-");
-
                 }
-
                 if (el.id && el.id.indexOf("id_obj-") === 0) {
-
                     el.id = el.id.replace(/id_obj-(\d+)-/, "id_obj-" + index + "-");
-
                 }
-
                 if (el.htmlFor && el.htmlFor.indexOf("id_obj-") === 0) {
-
                     el.htmlFor = el.htmlFor.replace(/id_obj-(\d+)-/, "id_obj-" + index + "-");
-
                 }
-
             });
-
         });
-
         totalFormsInput.value = forms.length;
-
         renumerarTitulos();
-
     }
 
-    addBtn.addEventListener("click", function (e) {
+    // Evita que una inserción o eliminación manual cambie índices mientras
+    // los objetos habituales esperan la carga AJAX de objeto y variante.
+    function bloquearFilas(estado) {
+        bloqueado = Boolean(estado);
+        addBtn.disabled = bloqueado;
+        if (secondaryAddBtn) secondaryAddBtn.disabled = bloqueado;
+        container.querySelectorAll(".remove-obj-btn").forEach(function (btn) {
+            btn.disabled = bloqueado;
+        });
+    }
 
-        e.preventDefault();
-
-        const currentCount = parseInt(totalFormsInput.value, 10) || 0;
-
-        const newIndex = currentCount;
-
+    function agregarFila(desdeHabituales = false) {
+        if (bloqueado && !desdeHabituales) return { idx: null, card: null };
+        const newIndex = parseInt(totalFormsInput.value, 10) || 0;
         const templateHtml = emptyFormDiv.innerHTML.replace(/__prefix__/g, newIndex);
-
         const tempContainer = document.createElement("div");
-
         tempContainer.innerHTML = templateHtml.trim();
-
         const newForm = tempContainer.firstElementChild;
-
+        if (!newForm) return { idx: null, card: null };
         container.appendChild(newForm);
-
         reindexForms();
+        bloquearFilas(bloqueado);
+        return { idx: newIndex, card: newForm };
+    }
 
+    // La inserción manual y la de objetos habituales comparten exactamente
+    // la misma lógica de nombres, identificadores y numeración visible.
+    window.pvsaEstructuraFilas = {
+        agregar: agregarFila,
+        sincronizar: reindexForms,
+        bloquear: bloquearFilas
+    };
+
+    addBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        agregarFila();
     });
 
     container.addEventListener("click", function (e) {
-
         const btn = e.target.closest(".remove-obj-btn");
-
-        if (!btn) return;
-
+        if (!btn || bloqueado) return;
         e.preventDefault();
-
         const card = btn.closest(".objeto-form");
-
         if (card) {
-
             card.remove();
-
             reindexForms();
-
         }
-
     });
 
     reindexForms();
-
 });
-
 </script>
 
 <script>
 
 document.addEventListener("DOMContentLoaded", function () {
-
-  const sectorSelect = document.getElementById("id_sector_existente");
-
-  const ubicacionSelect = document.getElementById("id_ubicacion_existente");
-
-  const pisoSelect = document.getElementById("id_piso_existente");
-
-  if (sectorSelect && ubicacionSelect && pisoSelect) {
-
-    sectorSelect.addEventListener("change", function () {
-
-      const sectorId = this.value || "";
-
-      ubicacionSelect.innerHTML = '<option value="">---------</option>';
-
-      pisoSelect.innerHTML = '<option value="">---------</option>';
-
-      if (!sectorId) return;
-
-      fetch(`/ajax/ubicaciones-por-sector/?sector_id=${sectorId}`)
-
-        .then(r => r.json())
-
-        .then(data => {
-
-          data.forEach(item => {
-
-            const opt = document.createElement("option");
-
-            opt.value = item.id;
-
-            opt.textContent = item.nombre;
-
-            ubicacionSelect.appendChild(opt);
-
-          });
-
-        })
-
-        .catch(err => console.error("Error cargando ubicaciones:", err));
-
-    });
-
-    ubicacionSelect.addEventListener("change", function () {
-
-      const ubicacionId = this.value || "";
-
-      pisoSelect.innerHTML = '<option value="">---------</option>';
-
-      if (!ubicacionId) return;
-
-      fetch(`/ajax/pisos-por-ubicacion/?ubicacion_id=${ubicacionId}`)
-
-        .then(r => r.json())
-
-        .then(data => {
-
-          data.forEach(item => {
-
-            const opt = document.createElement("option");
-
-            opt.value = item.id;
-
-            opt.textContent = item.nombre;
-
-            pisoSelect.appendChild(opt);
-
-          });
-
-        })
-
-        .catch(err => console.error("Error cargando pisos:", err));
-
-    });
-
-  }
 
   const objetosContainer = document.getElementById("objetos-container");
 
@@ -1474,29 +1382,28 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const categoriaId = target.value || "";
+        const token = Number(card.dataset.cargaObjetos || 0) + 1;
+        card.dataset.cargaObjetos = String(token);
+        // Al cambiar la categoría se invalida también una carga previa de variantes.
+        card.dataset.cargaVariantes = String(Number(card.dataset.cargaVariantes || 0) + 1);
 
         if (!categoriaId || !objetoSelect) return;
 
-        fetch(`/ajax/objetos-por-categoria/?categoria_id=${categoriaId}`)
-
-          .then(r => r.json())
-
-          .then(data => {
-
-            data.forEach(item => {
-
-              const opt = document.createElement("option");
-
-              opt.value = item.id;
-
-              opt.textContent = item.nombre;
-
-              objetoSelect.appendChild(opt);
-
-            });
-
+        fetch(`/ajax/objetos-por-categoria/?categoria_id=${encodeURIComponent(categoriaId)}`)
+          .then(r => {
+            if (!r.ok) throw new Error("No se pudieron cargar los objetos.");
+            return r.json();
           })
-
+          .then(data => {
+            if (!card.isConnected || token !== Number(card.dataset.cargaObjetos) ||
+                String(target.value) !== String(categoriaId)) return;
+            data.forEach(item => {
+              const opt = document.createElement("option");
+              opt.value = item.id;
+              opt.textContent = item.nombre;
+              objetoSelect.appendChild(opt);
+            });
+          })
           .catch(err => console.error("Error cargando objetos:", err));
 
       }
@@ -1514,29 +1421,26 @@ document.addEventListener("DOMContentLoaded", function () {
         tipoSelect.innerHTML = '<option value="">---------</option>';
 
         const objetoId = target.value || "";
+        const token = Number(card.dataset.cargaVariantes || 0) + 1;
+        card.dataset.cargaVariantes = String(token);
 
         if (!objetoId) return;
 
-        fetch(`/ajax/tipos-por-objeto/?objeto_id=${objetoId}`)
-
-          .then(r => r.json())
-
-          .then(data => {
-
-            data.forEach(item => {
-
-              const opt = document.createElement("option");
-
-              opt.value = item.id;
-
-              opt.textContent = item.nombre;
-
-              tipoSelect.appendChild(opt);
-
-            });
-
+        fetch(`/ajax/tipos-por-objeto/?objeto_id=${encodeURIComponent(objetoId)}`)
+          .then(r => {
+            if (!r.ok) throw new Error("No se pudieron cargar las variantes.");
+            return r.json();
           })
-
+          .then(data => {
+            if (!card.isConnected || token !== Number(card.dataset.cargaVariantes) ||
+                String(target.value) !== String(objetoId)) return;
+            data.forEach(item => {
+              const opt = document.createElement("option");
+              opt.value = item.id;
+              opt.textContent = item.nombre;
+              tipoSelect.appendChild(opt);
+            });
+          })
           .catch(err => console.error("Error cargando tipos de objeto:", err));
 
       }
@@ -1636,45 +1540,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function addNewRowAndGetIndex() {
-
-    const totalInput = getTotalFormsInput();
-
-    if (!totalInput) return { idx: null, card: null };
-
-    const idx = parseInt(totalInput.value, 10) || 0;
-
-    const empty =
-
-      document.getElementById("empty-form") ||
-
-      document.querySelector("[data-empty-form]");
-
-    const container =
-
-      document.getElementById("objetos-container") ||
-
-      document.querySelector("[data-objetos-container]");
-
-    if (!empty || !container) return { idx: null, card: null };
-
-    const html = (empty.dataset.emptyForm || empty.innerHTML).replaceAll("__prefix__", idx);
-
-    const wrapper = document.createElement("div");
-
-    wrapper.innerHTML = html.trim();
-
-    const nodes = Array.from(wrapper.childNodes).filter(n => n.nodeType === 1);
-
-    nodes.forEach(n => container.appendChild(n));
-
-    totalInput.value = idx + 1;
-
-    const cards = container.querySelectorAll(".objeto-form");
-
-    const card = cards.length ? cards[cards.length - 1] : null;
-
-    return { idx, card };
-
+    const gestor = window.pvsaEstructuraFilas;
+    return gestor ? gestor.agregar(true) : { idx: null, card: null };
   }
 
   function findByName(name, root = document) {
@@ -1741,33 +1608,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const tipoName = `${prefix}-${idx}-tipo_objeto_existente`;
 
-    const categoriaSel = setValueByName(categoriaName, item.categoria_id, cardRoot) || findByName(categoriaName);
-
+    const categoriaSel = setValueByName(categoriaName, item.categoria_id, cardRoot);
+    if (!categoriaSel || String(categoriaSel.value) !== String(item.categoria_id)) return false;
     dispatchChange(categoriaSel);
 
-    const objetoSel = findByName(objetoName, cardRoot) || findByName(objetoName);
+    const objetoSel = findByName(objetoName, cardRoot);
+    if (!objetoSel || !await waitForOption(objetoSel, item.objeto_id)) return false;
+    objetoSel.value = String(item.objeto_id);
+    dispatchChange(objetoSel);
 
-    await waitForOption(objetoSel, item.objeto_id);
-
-    if (objetoSel) {
-
-      objetoSel.value = String(item.objeto_id);
-
-      dispatchChange(objetoSel);
-
-    }
-
-    const tipoSel = findByName(tipoName, cardRoot) || findByName(tipoName);
-
-    await waitForOption(tipoSel, item.tipo_objeto_id);
-
-    if (tipoSel) {
-
-      tipoSel.value = String(item.tipo_objeto_id);
-
-      dispatchChange(tipoSel);
-
-    }
+    const tipoSel = findByName(tipoName, cardRoot);
+    if (!tipoSel || !await waitForOption(tipoSel, item.tipo_objeto_id)) return false;
+    tipoSel.value = String(item.tipo_objeto_id);
+    dispatchChange(tipoSel);
 
     const cantName = `${prefix}-${idx}-cantidad`;
 
@@ -1819,6 +1672,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
+    return true;
   }
 
   function closeModalHard(modalEl) {
@@ -1880,9 +1734,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!modalEl || !lista || !btnAgregar || typeof bootstrap === "undefined") return;
 
     const modal = new bootstrap.Modal(modalEl);
+    let solicitudTipicos = 0;
+    let agregandoTipicos = false;
 
     async function loadTipicosAndShow(tipoLugarPk) {
-
+      const solicitud = ++solicitudTipicos;
       lista.innerHTML = "";
 
       if (vacio) vacio.style.display = "none";
@@ -1893,8 +1749,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       });
 
+      if (!r.ok) throw new Error("No se pudieron cargar los objetos habituales.");
       const data = await r.json();
-
+      if (solicitud !== solicitudTipicos || String(tipoLugarSelect.value) !== String(tipoLugarPk)) return;
       const items = Array.isArray(data) ? data : (data.objetos || data.items || []);
 
       if (!items.length) {
@@ -1939,7 +1796,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           <label class="form-check-label" for="chk_tipico_${item.tipo_objeto_id}_${item.objeto_id}">
 
-            ${item.label || `ID ${item.tipo_objeto_id}`}
+            ${pvsaEscapeHtml(item.label || `ID ${item.tipo_objeto_id}`)}
 
           </label>
 
@@ -1956,8 +1813,11 @@ document.addEventListener("DOMContentLoaded", function () {
     tipoLugarSelect.addEventListener("change", async function () {
 
       const tipoLugarPk = this.value;
-
-      if (!tipoLugarPk) return;
+      if (!tipoLugarPk) {
+        ++solicitudTipicos;
+        lista.innerHTML = "";
+        return;
+      }
 
       try {
 
@@ -1972,57 +1832,58 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     btnAgregar.addEventListener("click", async function () {
-
+      if (agregandoTipicos) return;
+      const gestor = window.pvsaEstructuraFilas;
+      if (!gestor) return;
       const prefix = getPrefix();
-
-      const checks = lista.querySelectorAll('input[type="checkbox"]:checked');
-
+      const checks = Array.from(lista.querySelectorAll('input[type="checkbox"]:checked'));
       if (!checks.length) {
-
         closeModalHard(modalEl);
-
         return;
-
       }
 
-      for (const chk of checks) {
+      agregandoTipicos = true;
+      btnAgregar.disabled = true;
+      gestor.bloquear(true);
+      let fallidos = 0;
+      try {
+        for (const chk of checks) {
+          const { idx, card } = addNewRowAndGetIndex();
+          if (idx === null || !card) {
+            ++fallidos;
+            continue;
+          }
+          clearText(`${prefix}-${idx}-categoria_nueva`, card);
+          clearText(`${prefix}-${idx}-objeto_nuevo`, card);
+          clearText(`${prefix}-${idx}-marca`, card);
+          clearText(`${prefix}-${idx}-material`, card);
 
-        const { idx, card } = addNewRowAndGetIndex();
-
-        if (idx === null) continue;
-
-        clearText(`${prefix}-${idx}-categoria_nueva`, card || document);
-
-        clearText(`${prefix}-${idx}-objeto_nuevo`, card || document);
-
-        clearText(`${prefix}-${idx}-marca`, card || document);
-
-        clearText(`${prefix}-${idx}-material`, card || document);
-
-        await setCascadeSelects(
-
-          prefix,
-
-          idx,
-
-          {
-
-            categoria_id: chk.dataset.categoria,
-
-            objeto_id: chk.dataset.objeto,
-
-            tipo_objeto_id: chk.dataset.tipo
-
-          },
-
-          card || document
-
-        );
-
+          let completado = false;
+          try {
+            completado = await setCascadeSelects(prefix, idx, {
+              categoria_id: chk.dataset.categoria,
+              objeto_id: chk.dataset.objeto,
+              tipo_objeto_id: chk.dataset.tipo
+            }, card);
+          } catch (err) {
+            console.error("Error agregando objeto habitual:", err);
+          }
+          if (!completado) {
+            card.remove();
+            gestor.sincronizar();
+            ++fallidos;
+          }
+        }
+      } finally {
+        gestor.bloquear(false);
+        btnAgregar.disabled = false;
+        agregandoTipicos = false;
+        closeModalHard(modalEl);
       }
-
-      closeModalHard(modalEl);
-
+      if (fallidos) {
+        window.alert("No se pudieron cargar " + fallidos +
+          " objeto(s) habitual(es). Comprueba la configuración y vuelve a intentarlo.");
+      }
     });
 
   });
@@ -2032,145 +1893,149 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
-
+  const sectorSel = document.getElementById("id_sector_existente");
+  const ubicacionSel = document.getElementById("id_ubicacion_existente");
   const pisoSel = document.getElementById("id_piso_existente");
-
   const tipoSel = document.getElementById("id_tipo_lugar_existente");
-
   const lugarSel = document.getElementById("id_lugar_existente");
-
+  const sectorNuevo = document.getElementById("id_sector_nuevo");
+  const ubicacionNueva = document.getElementById("id_ubicacion_nueva");
   const pisoNuevo = document.getElementById("id_piso_nuevo");
-
   const tipoNuevo = document.getElementById("id_tipo_lugar_nuevo");
-
   const lugarNuevo = document.getElementById("id_lugar_nuevo");
+  if (!sectorSel || !ubicacionSel || !pisoSel || !tipoSel || !lugarSel) return;
 
-  if (!pisoSel || !tipoSel || !lugarSel) return;
-
+  let cargaUbicaciones = 0;
+  let cargaPisos = 0;
+  let cargaLugares = 0;
+  const valor = el => String(el?.value || "").trim();
+  function limpiar(select) {
+    select.innerHTML = '<option value="">---------</option>';
+    select.disabled = true;
+  }
   function resetLugar() {
-
-    lugarSel.innerHTML = '<option value="">---------</option>';
-
+    ++cargaLugares;
+    limpiar(lugarSel);
   }
-
-  function canLoad() {
-
-    const pisoId = (pisoSel.value || "").trim();
-
-    const tipoId = (tipoSel.value || "").trim();
-
-    const pisoNew = (pisoNuevo?.value || "").trim();
-
-    const tipoNew = (tipoNuevo?.value || "").trim();
-
-    return !!(pisoId && tipoId) && !pisoNew && !tipoNew;
-
-  }
-
-  async function loadLugares() {
-
+  function resetPisoYLugar() {
+    ++cargaPisos;
+    limpiar(pisoSel);
     resetLugar();
-
-    if (!canLoad()) {
-
-      lugarSel.disabled = true;
-
-      return;
-
-    }
-
-    lugarSel.disabled = false;
-
-    const pisoId = (pisoSel.value || "").trim();
-
-    const tipoId = (tipoSel.value || "").trim();
-
+  }
+  function resetDescendientesSector() {
+    ++cargaUbicaciones;
+    limpiar(ubicacionSel);
+    resetPisoYLugar();
+  }
+  function canLoad() {
+    return !!(valor(sectorSel) && valor(ubicacionSel) && valor(pisoSel) && valor(tipoSel)) &&
+      !valor(sectorNuevo) && !valor(ubicacionNueva) && !valor(pisoNuevo) && !valor(tipoNuevo);
+  }
+  function ponerOpciones(select, data) {
+    data.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = String(item.id);
+      opt.textContent = item.nombre;
+      select.appendChild(opt);
+    });
+    select.disabled = data.length === 0;
+  }
+  async function obtener(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("No se pudieron cargar las opciones.");
+    return response.json();
+  }
+  async function loadLugares() {
+    resetLugar();
+    if (!canLoad()) return;
+    const cargaActual = cargaLugares;
+    const pisoId = valor(pisoSel);
+    const tipoId = valor(tipoSel);
     try {
-
-      const url = `/ajax/lugares-por-piso/?piso_id=${encodeURIComponent(pisoId)}&tipo_lugar_id=${encodeURIComponent(tipoId)}`;
-
-      const r = await fetch(url);
-
-      const data = await r.json();
-
-      data.forEach(item => {
-
-        const opt = document.createElement("option");
-
-        opt.value = item.id;
-
-        opt.textContent = item.nombre;
-
-        lugarSel.appendChild(opt);
-
-      });
-
+      const data = await obtener('/ajax/lugares-por-piso/?piso_id=' + encodeURIComponent(pisoId) +
+        '&tipo_lugar_id=' + encodeURIComponent(tipoId));
+      if (cargaActual !== cargaLugares || pisoId !== valor(pisoSel) || tipoId !== valor(tipoSel) || !canLoad()) return;
+      ponerOpciones(lugarSel, data);
     } catch (err) {
-
       console.error("Error cargando lugares:", err);
-
     }
-
   }
-
-  pisoSel.addEventListener("change", loadLugares);
-
-  tipoSel.addEventListener("change", loadLugares);
-
-  if (pisoNuevo) {
-
-    pisoNuevo.addEventListener("input", () => {
-
-      resetLugar();
-
-      lugarSel.disabled = true;
-
-    });
-
-  }
-
-  if (tipoNuevo) {
-
-    tipoNuevo.addEventListener("input", () => {
-
-      resetLugar();
-
-      lugarSel.disabled = true;
-
-    });
-
-  }
-
+  sectorSel.addEventListener("change", async function () {
+    resetDescendientesSector();
+    const sectorId = valor(sectorSel);
+    if (sectorId && sectorNuevo) sectorNuevo.value = "";
+    if (!sectorId) return;
+    const cargaActual = cargaUbicaciones;
+    try {
+      const data = await obtener('/ajax/ubicaciones-por-sector/?sector_id=' + encodeURIComponent(sectorId));
+      if (cargaActual !== cargaUbicaciones || sectorId !== valor(sectorSel) || valor(sectorNuevo)) return;
+      ponerOpciones(ubicacionSel, data);
+    } catch (err) {
+      console.error("Error cargando ubicaciones:", err);
+    }
+  });
+  ubicacionSel.addEventListener("change", async function () {
+    resetPisoYLugar();
+    const ubicacionId = valor(ubicacionSel);
+    const sectorId = valor(sectorSel);
+    if (ubicacionId && ubicacionNueva) ubicacionNueva.value = "";
+    if (!ubicacionId || !sectorId || valor(sectorNuevo)) return;
+    const cargaActual = cargaPisos;
+    try {
+      const data = await obtener('/ajax/pisos-por-ubicacion/?ubicacion_id=' + encodeURIComponent(ubicacionId));
+      if (cargaActual !== cargaPisos || ubicacionId !== valor(ubicacionSel) || sectorId !== valor(sectorSel) || valor(ubicacionNueva)) return;
+      ponerOpciones(pisoSel, data);
+    } catch (err) {
+      console.error("Error cargando pisos:", err);
+    }
+  });
+  pisoSel.addEventListener("change", () => {
+    if (valor(pisoSel) && pisoNuevo) pisoNuevo.value = "";
+    return loadLugares();
+  });
+  tipoSel.addEventListener("change", () => {
+    if (valor(tipoSel) && tipoNuevo) tipoNuevo.value = "";
+    return loadLugares();
+  });
+  if (sectorNuevo) sectorNuevo.addEventListener("input", () => {
+    if (valor(sectorNuevo)) sectorSel.value = "";
+    resetDescendientesSector();
+  });
+  if (ubicacionNueva) ubicacionNueva.addEventListener("input", () => {
+    if (valor(ubicacionNueva)) ubicacionSel.value = "";
+    resetPisoYLugar();
+  });
+  if (pisoNuevo) pisoNuevo.addEventListener("input", () => {
+    if (valor(pisoNuevo)) pisoSel.value = "";
+    resetLugar();
+  });
+  if (tipoNuevo) tipoNuevo.addEventListener("input", () => {
+    if (valor(tipoNuevo)) tipoSel.value = "";
+    resetLugar();
+  });
   if (lugarNuevo) {
-
     lugarSel.addEventListener("change", () => {
-
-      if ((lugarSel.value || "").trim()) {
-
-        lugarNuevo.value = "";
-
-      }
-
+      if (valor(lugarSel)) lugarNuevo.value = "";
     });
-
     lugarNuevo.addEventListener("input", () => {
-
-      if ((lugarNuevo.value || "").trim()) {
-
-        lugarSel.value = "";
-
-      }
-
+      if (valor(lugarNuevo)) lugarSel.value = "";
     });
-
   }
 
-  loadLugares();
-
+  // Preserve Django's valid bound POST selections. Never clear object rows here.
+  if (!valor(sectorSel) || valor(sectorNuevo)) {
+    resetDescendientesSector();
+  } else if (!valor(ubicacionSel) || valor(ubicacionNueva)) {
+    resetPisoYLugar();
+  } else {
+    ubicacionSel.disabled = false;
+    pisoSel.disabled = !valor(ubicacionSel);
+    if (!canLoad()) resetLugar();
+    else if (!valor(lugarSel)) loadLugares();
+    else lugarSel.disabled = false;
+  }
 });
-
 </script>
 
 <script>
@@ -2361,7 +2226,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         '<div class="mt-1">Ya existe algo muy parecido: <strong>' +
 
-        similares.slice(0, 2).join("</strong>, <strong>") +
+        similares.slice(0, 2).map(pvsaEscapeHtml).join("</strong>, <strong>") +
 
         '</strong>.</div>';
 
@@ -2435,9 +2300,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   }
 
-  if (ubicacionNueva) {
-
-    ubicacionNueva.addEventListener("input", function () {
+  function validarUbicacionNueva() {
 
       const valor = normalizar(ubicacionNueva.value);
 
@@ -2473,9 +2336,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         exacto
 
-          ? "Ya existe <strong>" + exacto.ubicacion +
+          ? "Ya existe <strong>" + pvsaEscapeHtml(exacto.ubicacion) +
 
-            "</strong> en <strong>" + exacto.sector__sector +
+            "</strong> en <strong>" + pvsaEscapeHtml(exacto.sector__sector) +
 
             "</strong>. Selecciona esa ubicación en vez de crearla de nuevo."
 
@@ -2483,10 +2346,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       );
 
-    });
+  }
 
-    ubicacionNueva.dispatchEvent(new Event("input"));
-
+  if (ubicacionNueva) {
+    ubicacionNueva.addEventListener("input", validarUbicacionNueva);
+    // Solo muestra la advertencia inicial: NO dispara eventos sobre los selectores.
+    validarUbicacionNueva();
   }
 
   function validarPiso() {
@@ -2603,7 +2468,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       exacto
 
-        ? "Ya existe <strong>" + exacto.nombre_del_lugar +
+        ? "Ya existe <strong>" + pvsaEscapeHtml(exacto.nombre_del_lugar) +
 
           "</strong> en este piso. Selecciona ese lugar en vez de crear otro."
 
@@ -2671,11 +2536,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         exacto
 
-          ? "Ya existe <strong>" + exacto.nombre_del_objeto +
+          ? "Ya existe <strong>" + pvsaEscapeHtml(exacto.nombre_del_objeto) +
 
             "</strong> en <strong>" +
 
-            exacto.objeto_categoria__nombre_de_categoria +
+            pvsaEscapeHtml(exacto.objeto_categoria__nombre_de_categoria) +
 
             "</strong>. Selecciónalo como objeto existente."
 
@@ -2725,9 +2590,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   lugarExistente.addEventListener("change", actualizarAreaComun);
   // Recalcular tras cambios en la jerarquía (que pueden limpiar el selector).
-  ["id_piso_existente", "id_tipo_lugar_existente"].forEach(function (id) {
+  ["id_sector_existente", "id_ubicacion_existente", "id_piso_existente",
+   "id_tipo_lugar_existente"].forEach(function (id) {
     const campo = document.getElementById(id);
     if (campo) campo.addEventListener("change", actualizarAreaComun);
+  });
+  ["id_sector_nuevo", "id_ubicacion_nueva", "id_piso_nuevo",
+   "id_tipo_lugar_nuevo", "id_lugar_nuevo"].forEach(function (id) {
+    const campo = document.getElementById(id);
+    if (campo) campo.addEventListener("input", actualizarAreaComun);
   });
 
   actualizarAreaComun();
