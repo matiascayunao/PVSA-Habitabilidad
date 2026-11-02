@@ -1265,7 +1265,7 @@ document.addEventListener("DOMContentLoaded", function () {
         '<i class="bi bi-funnel"></i><strong>' +
         (label ? label.textContent.trim() : "Filtro") +
         ":</strong> " +
-        option.textContent.trim();
+        pvsaEscapeHtml(option.textContent.trim());
 
       activeFilters.appendChild(chip);
     });

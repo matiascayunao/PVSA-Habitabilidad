@@ -922,28 +922,28 @@ document.addEventListener("DOMContentLoaded", function () {
       const option = select.options[select.selectedIndex];
       const chip = document.createElement("span");
       chip.className = "active-filter-chip";
-      chip.innerHTML = '<i class="bi bi-funnel"></i><strong>' + (label ? label.textContent.trim() : "Filtro") + ':</strong> ' + option.textContent.trim();
+      chip.innerHTML = '<i class="bi bi-funnel"></i><strong>' + (label ? label.textContent.trim() : "Filtro") + ':</strong> ' + pvsaEscapeHtml(option.textContent.trim());
       activeFilters.appendChild(chip);
     });
 
     if (sortSelect && sortSelect.value !== "priority") {
       const chip = document.createElement("span");
       chip.className = "active-filter-chip";
-      chip.innerHTML = '<i class="bi bi-sort-down"></i><strong>Orden:</strong> ' + sortSelect.options[sortSelect.selectedIndex].textContent.trim();
+      chip.innerHTML = '<i class="bi bi-sort-down"></i><strong>Orden:</strong> ' + pvsaEscapeHtml(sortSelect.options[sortSelect.selectedIndex].textContent.trim());
       activeFilters.appendChild(chip);
     }
 
     if (statusSelect && statusSelect.value !== "all") {
       const chip = document.createElement("span");
       chip.className = "active-filter-chip";
-      chip.innerHTML = '<i class="bi bi-activity"></i><strong>Estado:</strong> ' + statusSelect.options[statusSelect.selectedIndex].textContent.trim();
+      chip.innerHTML = '<i class="bi bi-activity"></i><strong>Estado:</strong> ' + pvsaEscapeHtml(statusSelect.options[statusSelect.selectedIndex].textContent.trim());
       activeFilters.appendChild(chip);
     }
 
     if (incidenceSelect && incidenceSelect.value !== "all") {
       const chip = document.createElement("span");
       chip.className = "active-filter-chip";
-      chip.innerHTML = '<i class="bi bi-exclamation-circle"></i><strong>Situación de objetos:</strong> ' + incidenceSelect.options[incidenceSelect.selectedIndex].textContent.trim();
+      chip.innerHTML = '<i class="bi bi-exclamation-circle"></i><strong>Situación de objetos:</strong> ' + pvsaEscapeHtml(incidenceSelect.options[incidenceSelect.selectedIndex].textContent.trim());
       activeFilters.appendChild(chip);
     }
 

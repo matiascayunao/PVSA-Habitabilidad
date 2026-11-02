@@ -175,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
       duplicateAlert.classList.toggle("d-none", !esDuplicadoExacto);
       duplicateAlert.innerHTML = esDuplicadoExacto
         ? '<i class="bi bi-x-circle-fill me-1"></i>' +
-          'Ya existe el sector <strong>' + exacto +
+          'Ya existe el sector <strong>' + pvsaEscapeHtml(exacto) +
           '</strong>. Usa ese registro en vez de crear otro.'
         : "";
     }
@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded", function () {
       contenido +=
         '<div class="similar-item">' +
         '<i class="bi bi-arrow-right-short"></i>' +
-        '<div><strong>' + nombre + '</strong></div>' +
+        '<div><strong>' + pvsaEscapeHtml(nombre) + '</strong></div>' +
         '</div>';
     });
 

@@ -456,7 +456,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       '<strong>Seleccionado:</strong> ' +
 
-      option.textContent.trim();
+      pvsaEscapeHtml(option.textContent.trim());
 
     floorInfo.classList.remove("d-none");
 
@@ -490,7 +490,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         ? '<i class="bi bi-x-circle-fill me-1"></i>' +
 
-          'Ya existe <strong>' + exacto.nombre_del_lugar +
+          'Ya existe <strong>' + pvsaEscapeHtml(exacto.nombre_del_lugar) +
 
           '</strong> en este mismo piso. Usa ese lugar en vez de crear otro.'
 
@@ -562,9 +562,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         '<i class="bi bi-arrow-right-short"></i>' +
 
-        '<div><strong>' + item.nombre_del_lugar + '</strong>' +
+        '<div><strong>' + pvsaEscapeHtml(item.nombre_del_lugar) + '</strong>' +
 
-        ' · ' + item.lugar_tipo_lugar__tipo_de_lugar +
+        ' · ' + pvsaEscapeHtml(item.lugar_tipo_lugar__tipo_de_lugar) +
 
         '</div>' +
 

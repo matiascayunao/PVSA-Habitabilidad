@@ -219,11 +219,11 @@ document.addEventListener("DOMContentLoaded", function () {
         alertBox.innerHTML =
           '<i class="bi bi-x-circle-fill me-1"></i>' +
           'Esta variante ya existe: <strong>' +
-          exacta.objeto__nombre_del_objeto +
+          pvsaEscapeHtml(exacta.objeto__nombre_del_objeto) +
           '</strong> · ' +
-          marcaTexto +
+          pvsaEscapeHtml(marcaTexto) +
           ' · ' +
-          materialTexto +
+          pvsaEscapeHtml(materialTexto) +
           '.';
       } else {
         alertBox.innerHTML = "";

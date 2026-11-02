@@ -233,9 +233,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       duplicateAlert.innerHTML = esDuplicadoExacto
         ? '<i class="bi bi-x-circle-fill me-1"></i>' +
-          'Ya existe <strong>' + exacto.nombre_del_objeto +
+          'Ya existe <strong>' + pvsaEscapeHtml(exacto.nombre_del_objeto) +
           '</strong> en la categoría <strong>' +
-          exacto.objeto_categoria__nombre_de_categoria +
+          pvsaEscapeHtml(exacto.objeto_categoria__nombre_de_categoria) +
           '</strong>. Usa ese objeto en vez de crear otro.'
         : "";
     }
@@ -274,8 +274,8 @@ document.addEventListener("DOMContentLoaded", function () {
       contenido +=
         '<div class="similar-item">' +
         '<i class="bi bi-arrow-right-short"></i>' +
-        '<div><strong>' + item.nombre_del_objeto + '</strong> · ' +
-        item.objeto_categoria__nombre_de_categoria +
+        '<div><strong>' + pvsaEscapeHtml(item.nombre_del_objeto) + '</strong> · ' +
+        pvsaEscapeHtml(item.objeto_categoria__nombre_de_categoria) +
         '</div>' +
         '</div>';
     });

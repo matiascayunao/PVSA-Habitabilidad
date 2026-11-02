@@ -307,9 +307,9 @@ document.addEventListener("DOMContentLoaded", function () {
       duplicateAlert.innerHTML = esDuplicadoExacto
         ? '<i class="bi bi-x-circle-fill me-1"></i>' +
           'Ya existe <strong>' +
-          exacto.ubicacion +
+          pvsaEscapeHtml(exacto.ubicacion) +
           '</strong> en el sector <strong>' +
-          exacto.sector__sector +
+          pvsaEscapeHtml(exacto.sector__sector) +
           '</strong>. Usa ese registro en vez de crear otro.'
         : "";
     }
@@ -356,9 +356,9 @@ document.addEventListener("DOMContentLoaded", function () {
         '<div class="similar-item">' +
         '<i class="bi bi-arrow-right-short"></i>' +
         '<div><strong>' +
-        item.ubicacion +
+        pvsaEscapeHtml(item.ubicacion) +
         '</strong> · ' +
-        item.sector__sector +
+        pvsaEscapeHtml(item.sector__sector) +
         '</div>' +
         '</div>';
     });
