@@ -18,6 +18,7 @@ from ..models import Objeto
 from ..models import TipoObjeto
 from ..models import ObjetoLugar
 from ..models import HistoricoObjeto
+from ..servicios.inventario import obtener_o_crear_variante, resolver_catalogo_inventario
 from .eliminacion import _confirm_delete
 
 
@@ -316,94 +317,28 @@ def crear_objeto_lugar(request, lugar_id):
             marca = (request.POST.get("nueva_marca") or "").strip()
             material = (request.POST.get("nuevo_material") or "").strip()
 
-            objeto = None
-            categoria = None
-
-            if modo == "variante":
-                if not objeto_existente_id.isdigit():
-                    form.add_error(
-                        "tipo_de_objeto",
-                        "Selecciona el objeto al que quieres agregar una nueva marca o material.",
-                    )
-                else:
-                    objeto = Objeto.objects.filter(pk=int(objeto_existente_id)).first()
-                    if not objeto:
-                        form.add_error(
-                            "tipo_de_objeto",
-                            "El objeto seleccionado ya no existe.",
-                        )
-            else:
-                if not objeto_nuevo_nombre:
-                    form.add_error(
-                        "tipo_de_objeto",
-                        "Escribe el nombre del nuevo objeto.",
-                    )
-                else:
-                    objeto = Objeto.objects.filter(
-                        nombre_del_objeto__iexact=objeto_nuevo_nombre
-                    ).first()
-
-                    if not objeto:
-                        if categoria_existente_id.isdigit():
-                            categoria = CategoriaObjeto.objects.filter(
-                                pk=int(categoria_existente_id)
-                            ).first()
-
-                            if not categoria:
-                                form.add_error(
-                                    "tipo_de_objeto",
-                                    "La categoría seleccionada ya no existe.",
-                                )
-
-                        elif categoria_nueva_nombre:
-                            categoria = CategoriaObjeto.objects.filter(
-                                nombre_de_categoria__iexact=categoria_nueva_nombre
-                            ).first()
-
-                        else:
-                            form.add_error(
-                                "tipo_de_objeto",
-                                "Selecciona una categoría o escribe una nueva.",
-                            )
+            try:
+                objeto, categoria = resolver_catalogo_inventario(
+                    modo=modo,
+                    objeto_existente_id=objeto_existente_id,
+                    objeto_nuevo_nombre=objeto_nuevo_nombre,
+                    categoria_existente_id=categoria_existente_id,
+                    categoria_nueva_nombre=categoria_nueva_nombre,
+                )
+            except ValidationError as error:
+                form.add_error("tipo_de_objeto", error)
 
             if not form.errors:
                 try:
                     with transaction.atomic():
-                        if not objeto:
-                            if not categoria:
-                                categoria = CategoriaObjeto.objects.create(
-                                    nombre_de_categoria=categoria_nueva_nombre
-                                )
-
-                            objeto = Objeto.objects.create(
-                                nombre_del_objeto=objeto_nuevo_nombre,
-                                objeto_categoria=categoria,
-                            )
-
-                        tipos_qs = TipoObjeto.objects.filter(objeto=objeto)
-
-                        if marca:
-                            tipos_qs = tipos_qs.filter(marca__iexact=marca)
-                        else:
-                            tipos_qs = tipos_qs.filter(
-                                Q(marca__isnull=True) | Q(marca__exact="")
-                            )
-
-                        if material:
-                            tipos_qs = tipos_qs.filter(material__iexact=material)
-                        else:
-                            tipos_qs = tipos_qs.filter(
-                                Q(material__isnull=True) | Q(material__exact="")
-                            )
-
-                        tipo_objeto = tipos_qs.first()
-
-                        if not tipo_objeto:
-                            tipo_objeto = TipoObjeto.objects.create(
-                                objeto=objeto,
-                                marca=marca,
-                                material=material,
-                            )
+                        tipo_objeto = obtener_o_crear_variante(
+                            objeto=objeto,
+                            categoria=categoria,
+                            objeto_nuevo_nombre=objeto_nuevo_nombre,
+                            categoria_nueva_nombre=categoria_nueva_nombre,
+                            marca=marca,
+                            material=material,
+                        )
 
                         obj = form.save(commit=False)
                         obj.tipo_de_objeto = tipo_objeto
