@@ -11,6 +11,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
 from ..models import ReporteIncidencia
+from ..servicios.incidencias import guardar_reporte_interno
 from ..pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
 from ..formularios.reporte_forms import ReportePublicoForm
 
@@ -49,22 +50,7 @@ def reportar_incidencia_jefe(request, lugar_id):
                     raise Http404("No tienes acceso a este lugar.")
 
                 reporte = form.save(commit=False)
-                reporte.lugar = lugar
-                reporte.origen = ReporteIncidencia.Origen.INTERNO
-                reporte.reportado_por = request.user
-                reporte.estado = ReporteIncidencia.Estado.NUEVO
-                reporte.atendido_por = None
-
-                opcion = form.cleaned_data["elemento_opcion"]
-                reporte.elemento_reportado = (
-                    (form.cleaned_data.get("otro_elemento") or "").strip()
-                    if opcion == "otro"
-                    else opcion
-                )
-
-                
-                reporte.full_clean()
-                reporte.save()
+                guardar_reporte_interno(reporte, lugar, request.user, form.cleaned_data)
 
             messages.success(
                 request,

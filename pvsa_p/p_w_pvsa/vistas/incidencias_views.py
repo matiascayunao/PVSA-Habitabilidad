@@ -10,12 +10,13 @@ from django.http import (
     HttpResponseBadRequest,
 )
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import (
     require_GET,
     require_http_methods,
 )
+
+from ..servicios.incidencias import actualizar_estado_incidencia
 
 from ..models import (
     Sector,
@@ -175,40 +176,7 @@ def detalle_incidencia(request, incidencia_id):
                 "La observación no puede superar 3000 caracteres.",
             )
         else:
-            estado_anterior = reporte.estado
-            ahora = timezone.now()
-
-            reporte.estado = estado_nuevo
-            reporte.observacion_resolucion = observacion
-
-            if estado_nuevo in (
-                ReporteIncidencia.Estado.EN_REVISION,
-                ReporteIncidencia.Estado.RESUELTO,
-                ReporteIncidencia.Estado.DESCARTADO,
-            ):
-                if reporte.fecha_inicio_atencion is None:
-                    reporte.fecha_inicio_atencion = ahora
-
-                if estado_anterior != estado_nuevo:
-                    reporte.atendido_por = request.user
-
-            if estado_nuevo == ReporteIncidencia.Estado.RESUELTO:
-                if estado_anterior != estado_nuevo:
-                    reporte.fecha_resolucion = ahora
-
-            elif estado_anterior == ReporteIncidencia.Estado.RESUELTO:
-                
-                reporte.fecha_resolucion = None
-
-            reporte.save(
-                update_fields=[
-                    "estado",
-                    "observacion_resolucion",
-                    "atendido_por",
-                    "fecha_inicio_atencion",
-                    "fecha_resolucion",
-                ]
-            )
+            actualizar_estado_incidencia(reporte, estado_nuevo, observacion, request.user)
 
             messages.success(
                 request,

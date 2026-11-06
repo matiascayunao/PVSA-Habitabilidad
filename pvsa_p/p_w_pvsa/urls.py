@@ -126,6 +126,9 @@ def proteger_vista(vista, nombre_ruta):
 
             )
 
+        if nombre_ruta == "signout" and vista is views.signout:
+            return vista(request, *args, **kwargs)
+
         # El superusuario tiene acceso completo.
 
         if request.user.is_superuser:

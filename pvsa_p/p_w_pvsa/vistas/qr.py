@@ -1,5 +1,4 @@
 import hashlib
-import uuid
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -10,7 +9,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from ..models import Lugar
 from ..models import AccesoQR
-from ..models import ReporteIncidencia
+from ..servicios.incidencias import guardar_reporte_publico
+from ..servicios.qr import identificar_y_registrar_acceso_qr, marcar_acceso_permitido
 from ..pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
 
 
@@ -64,57 +64,13 @@ def consulta_qr(request, token):
     # IDENTIFICAR QR
     # --------------------------------------------------
 
-    token_texto = str(token or "").strip()[:256]
-
-    token_huella = hashlib.sha256(
-        token_texto.lower().encode("utf-8")
-    ).hexdigest()
-
-    try:
-        token_uuid = uuid.UUID(token_texto)
-    except (AttributeError, TypeError, ValueError):
-        token_uuid = None
-
-    lugar = None
-
-    if token_uuid is not None:
-        lugar = (
-            Lugar.objects
-            .filter(qr_token=token_uuid)
-            .only(
-                "id",
-                "nombre_del_lugar",
-                "qr_token",
-                "qr_activo",
-                "visibilidad_qr",
-            )
-            .first()
-        )
-
-    # --------------------------------------------------
-    # REGISTRAR ACCESO
-    # --------------------------------------------------
-
-    if lugar is None:
-        resultado = AccesoQR.Resultado.INVALIDO
-
-    elif not lugar.qr_activo:
-        resultado = AccesoQR.Resultado.DESACTIVADO
-
-    else:
-        resultado = AccesoQR.Resultado.PERMITIDO
-
-    AccesoQR.objects.create(
-        lugar=lugar,
-        ip=request.META.get("REMOTE_ADDR") or None,
-        user_agent=(
-            request.META.get("HTTP_USER_AGENT") or ""
-        )[:512],
-        token_huella=token_huella,
-        resultado=resultado,
+    lugar, acceso = identificar_y_registrar_acceso_qr(
+        token,
+        request.META.get("REMOTE_ADDR"),
+        request.META.get("HTTP_USER_AGENT"),
     )
 
-    if resultado != AccesoQR.Resultado.PERMITIDO:
+    if acceso.resultado in (AccesoQR.Resultado.INVALIDO, AccesoQR.Resultado.DESACTIVADO):
         return HttpResponse(
             "Este código QR no está disponible.",
             status=404,
@@ -140,8 +96,18 @@ def consulta_qr(request, token):
 
         # Use the same object scope as the jefe panel; QR visibility grants no
         # additional inventory permissions. Common areas remain read/report only.
+        if not request.user.is_superuser:
+            grupos = set(request.user.groups.values_list("name", flat=True))
+            if "Jefe de departamento" in grupos and grupos.intersection({"Administrador", "Operador"}):
+                return HttpResponse(
+                    "No tienes permisos para consultar este lugar.",
+                    status=403,
+                    content_type="text/plain; charset=utf-8",
+                )
+
         if es_jefe_departamento(request.user):
             if lugares_visibles_jefe(request.user).filter(pk=lugar.pk).exists():
+                marcar_acceso_permitido(acceso)
                 return redirect("detalle_lugar_jefe", lugar_id=lugar.pk)
             return HttpResponse(
                 "No tienes permisos para consultar este lugar.",
@@ -163,6 +129,7 @@ def consulta_qr(request, token):
                 content_type="text/plain; charset=utf-8",
             )
 
+        marcar_acceso_permitido(acceso)
         return redirect(
             "detalle_lugar",
             lugar_id=lugar.pk,
@@ -182,6 +149,8 @@ def consulta_qr(request, token):
     # --------------------------------------------------
     # QR PÚBLICO: PROCESAR REPORTE
     # --------------------------------------------------
+
+    marcar_acceso_permitido(acceso)
 
     if request.method == "POST":
 
@@ -224,28 +193,7 @@ def consulta_qr(request, token):
                 try:
                     reporte = form.save(commit=False)
 
-                    reporte.lugar = lugar
-                    reporte.origen = (
-                        ReporteIncidencia.Origen.QR_PUBLICO
-                    )
-                    reporte.reportado_por = None
-
-                    opcion = form.cleaned_data[
-                        "elemento_opcion"
-                    ]
-
-                    if opcion == "otro":
-                        reporte.elemento_reportado = (
-                            form.cleaned_data[
-                                "otro_elemento"
-                            ].strip()
-                        )
-                    else:
-                        reporte.elemento_reportado = opcion
-
-                    # Validación y guardado.
-                    reporte.full_clean()
-                    reporte.save()
+                    guardar_reporte_publico(reporte, lugar, form.cleaned_data)
 
                 except Exception:
                     cache.delete(llave)

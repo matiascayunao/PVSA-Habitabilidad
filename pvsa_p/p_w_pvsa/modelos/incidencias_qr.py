@@ -17,6 +17,8 @@ class AccesoQR(models.Model):
 
         INVALIDO = "invalido", "QR inválido o sustituido"
 
+        DENEGADO = "denegado", "Acceso denegado"
+
     lugar = models.ForeignKey(
 
         Lugar,
