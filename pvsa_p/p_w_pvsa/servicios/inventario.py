@@ -30,6 +30,20 @@ def resolver_catalogo_inventario(*, modo, objeto_existente_id, objeto_nuevo_nomb
     return (objeto, categoria)
 
 def obtener_o_crear_variante(*, objeto, categoria, objeto_nuevo_nombre, categoria_nueva_nombre, marca, material):
+    campos = [(TipoObjeto, 'marca', marca), (TipoObjeto, 'material', material)]
+    if not objeto:
+        campos.append((Objeto, 'nombre_del_objeto', objeto_nuevo_nombre))
+        if not categoria:
+            campos.append((CategoriaObjeto, 'nombre_de_categoria', categoria_nueva_nombre))
+    errores = []
+    for modelo, nombre, valor in campos:
+        campo = modelo._meta.get_field(nombre)
+        try:
+            campo.clean(valor, None)
+        except ValidationError as error:
+            errores.extend(f'{campo.verbose_name}: {mensaje}' for mensaje in error.messages)
+    if errores:
+        raise ValidationError(errores)
     if not objeto:
         if not categoria:
             categoria = CategoriaObjeto.objects.create(nombre_de_categoria=categoria_nueva_nombre)

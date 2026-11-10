@@ -135,7 +135,10 @@ def crear_historico(request, objeto_lugar_id):
             },
         )
 
-    form = CrearHistorico(request.POST)
+    form = CrearHistorico(
+        request.POST,
+        instance=HistoricoObjeto(objeto_del_lugar=objeto_lugar),
+    )
 
     if form.is_valid():
         h = form.save(commit=False)

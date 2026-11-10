@@ -124,6 +124,8 @@ def _setup_outlines(ws):
 
 
 def _tipo_txt(ol) -> str:
+    if ol.tipo_de_objeto is None:
+        return "Sin variante asignada"
     marca = (ol.tipo_de_objeto.marca or "").strip()
     material = (ol.tipo_de_objeto.material or "").strip()
     partes = [p for p in (marca, material) if p]
@@ -222,15 +224,18 @@ def _write_lugar_block(ws, start_row, lugar, objetos_qs):
         count += 1
 
         categoria = _cat_txt(ol)
-        objeto_nombre = ol.tipo_de_objeto.objeto.nombre_del_objeto
+        objeto_nombre = (
+            ol.tipo_de_objeto.objeto.nombre_del_objeto
+            if ol.tipo_de_objeto is not None else "Sin variante asignada"
+        )
         tipo_txt2 = _tipo_txt(ol)
 
         _celda_texto(ws, r, VISIBLE["CAT"], categoria).font = FONT_CELL
         _celda_texto(ws, r, VISIBLE["OBJ"], objeto_nombre).font = FONT_CELL
         _celda_texto(ws, r, VISIBLE["TIP"], tipo_txt2).font = FONT_CELL
         # Marca y material se guardan por separado para una ida y vuelta exacta.
-        _celda_texto(ws, r, 14, (ol.tipo_de_objeto.marca or "").strip())
-        _celda_texto(ws, r, 15, (ol.tipo_de_objeto.material or "").strip())
+        _celda_texto(ws, r, 14, (ol.tipo_de_objeto.marca or "").strip() if ol.tipo_de_objeto is not None else "")
+        _celda_texto(ws, r, 15, (ol.tipo_de_objeto.material or "").strip() if ol.tipo_de_objeto is not None else "")
         ws.cell(r, 16, ol.cantidad_mala)
         ws.cell(r, 17, ol.cantidad_pendiente)
         ws.cell(r, 18, ol.minimo_operativo)

@@ -155,10 +155,21 @@ class CrearHistorico(forms.ModelForm):
         cantidad = cleaned.get("cantidad_anterior") or 0
         cantidad_mala = cleaned.get("cantidad_mala_anterior") or 0
         cantidad_pendiente = cleaned.get("cantidad_pendiente_anterior") or 0
-        minimo_operativo = cleaned.get("minimo_operativo_anterior") or 1
+        minimo_operativo = cleaned.get("minimo_operativo_anterior")
+        if minimo_operativo is None:
+            minimo_operativo = 1
 
         if cantidad <= 0:
             raise forms.ValidationError("La cantidad total anterior debe ser mayor a 0.")
+
+        if cantidad_mala < 0:
+            raise forms.ValidationError("Las unidades malas anteriores no pueden ser negativas.")
+
+        if cantidad_pendiente < 0:
+            raise forms.ValidationError("Las unidades pendientes anteriores no pueden ser negativas.")
+
+        if minimo_operativo < 1:
+            raise forms.ValidationError("El mínimo operativo anterior debe ser al menos 1.")
 
         if cantidad_mala + cantidad_pendiente > cantidad:
             raise forms.ValidationError(
@@ -174,6 +185,10 @@ class CrearHistorico(forms.ModelForm):
 
 
 class EditarObjetoLugar(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tipo_de_objeto"].required = True
+
     class Meta:
         model = ObjetoLugar
         fields = [
@@ -255,6 +270,11 @@ class EditarObjetoLugar(forms.ModelForm):
 
 
 class EditarHistorico(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["objeto_del_lugar"].disabled = True
+
     fecha_anterior = forms.DateField(
         input_formats=["%d/%m/%Y"],
         widget=forms.DateInput(
@@ -319,10 +339,21 @@ class EditarHistorico(forms.ModelForm):
         cantidad = cleaned.get("cantidad_anterior") or 0
         cantidad_mala = cleaned.get("cantidad_mala_anterior") or 0
         cantidad_pendiente = cleaned.get("cantidad_pendiente_anterior") or 0
-        minimo_operativo = cleaned.get("minimo_operativo_anterior") or 1
+        minimo_operativo = cleaned.get("minimo_operativo_anterior")
+        if minimo_operativo is None:
+            minimo_operativo = 1
 
         if cantidad <= 0:
             raise forms.ValidationError("La cantidad total anterior debe ser mayor a 0.")
+
+        if cantidad_mala < 0:
+            raise forms.ValidationError("Las unidades malas anteriores no pueden ser negativas.")
+
+        if cantidad_pendiente < 0:
+            raise forms.ValidationError("Las unidades pendientes anteriores no pueden ser negativas.")
+
+        if minimo_operativo < 1:
+            raise forms.ValidationError("El mínimo operativo anterior debe ser al menos 1.")
 
         if cantidad_mala + cantidad_pendiente > cantidad:
             raise forms.ValidationError(
