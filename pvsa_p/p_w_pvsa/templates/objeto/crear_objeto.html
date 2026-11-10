@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Crear objeto · PVSA{% endblock %}
 
@@ -152,8 +153,12 @@ form input,form select,form textarea{width:100%;min-height:38px}
 }
 </style>
 
+<script src="{% static 'p_w_pvsa/js/nombres_similares.js' %}"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  const { normalizar } = window.pvsaNombres;
+  const pareceDuplicado = (a, b) => window.pvsaNombres.parecido(a, b, 3, 6, 14);
+
   const input = document.getElementById("{{ form.nombre_del_objeto.id_for_label }}");
   const duplicateAlert = document.getElementById("objetoDuplicateAlert");
   const similarAlert = document.getElementById("objetoSimilarAlert");
@@ -162,62 +167,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("objetos-existentes-data").textContent
   );
 
-  function normalizar(valor) {
-    return String(valor || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLocaleLowerCase("es");
-  }
 
-  function distanciaLevenshtein(a, b) {
-    a = normalizar(a);
-    b = normalizar(b);
 
-    const filas = a.length + 1;
-    const columnas = b.length + 1;
-    const matriz = Array.from({ length: filas }, function () {
-      return Array(columnas).fill(0);
-    });
-
-    for (let i = 0; i < filas; i++) matriz[i][0] = i;
-    for (let j = 0; j < columnas; j++) matriz[0][j] = j;
-
-    for (let i = 1; i < filas; i++) {
-      for (let j = 1; j < columnas; j++) {
-        const costo = a[i - 1] === b[j - 1] ? 0 : 1;
-
-        matriz[i][j] = Math.min(
-          matriz[i - 1][j] + 1,
-          matriz[i][j - 1] + 1,
-          matriz[i - 1][j - 1] + costo
-        );
-      }
-    }
-
-    return matriz[a.length][b.length];
-  }
-
-  function pareceDuplicado(nuevo, existente) {
-    const a = normalizar(nuevo);
-    const b = normalizar(existente);
-
-    if (!a || !b || a === b) return false;
-    if (Math.min(a.length, b.length) < 3) return false;
-
-    const distancia = distanciaLevenshtein(a, b);
-    const largoMayor = Math.max(a.length, b.length);
-
-    if (largoMayor <= 6) return distancia === 1;
-    if (largoMayor <= 14) return distancia <= 2;
-    if (distancia <= 3) return true;
-
-    return (
-      Math.abs(a.length - b.length) <= 2 &&
-      (a.includes(b) || b.includes(a))
-    );
-  }
 
   function verificar() {
     const valor = normalizar(input?.value);

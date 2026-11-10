@@ -1192,7 +1192,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (quickView) {
-    const savedQuickView = localStorage.getItem("pvsa_objetos_vista_rapida");
+    const savedQuickView = window.pvsaStorage.getItem("pvsa_objetos_vista_rapida");
 
     if (
       savedQuickView &&
@@ -1202,13 +1202,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     quickView.addEventListener("change", function () {
-      localStorage.setItem("pvsa_objetos_vista_rapida", quickView.value);
+      window.pvsaStorage.setItem("pvsa_objetos_vista_rapida", quickView.value);
       filtrar();
     });
   }
 
   if (orderSelect) {
-    const savedOrder = localStorage.getItem("pvsa_objetos_orden");
+    const savedOrder = window.pvsaStorage.getItem("pvsa_objetos_orden");
 
     if (
       savedOrder &&
@@ -1227,7 +1227,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     orderSelect.addEventListener("change", function () {
-      localStorage.setItem("pvsa_objetos_orden", orderSelect.value);
+      window.pvsaStorage.setItem("pvsa_objetos_orden", orderSelect.value);
       ordenar();
       filtrar();
     });

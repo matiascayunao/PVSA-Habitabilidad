@@ -288,14 +288,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (orderSelect) {
-    const savedOrder = localStorage.getItem("pvsa_sectores_orden");
+    const savedOrder = window.pvsaStorage.getItem("pvsa_sectores_orden");
 
     if (savedOrder && ["az", "za"].includes(savedOrder)) {
       orderSelect.value = savedOrder;
     }
 
     orderSelect.addEventListener("change", function () {
-      localStorage.setItem("pvsa_sectores_orden", orderSelect.value);
+      window.pvsaStorage.setItem("pvsa_sectores_orden", orderSelect.value);
       ordenar();
       filtrar();
     });

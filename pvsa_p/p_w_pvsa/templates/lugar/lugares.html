@@ -605,14 +605,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (orderSelect) {
-    const savedOrder = localStorage.getItem("pvsa_lugares_orden");
+    const savedOrder = window.pvsaStorage.getItem("pvsa_lugares_orden");
 
     if (savedOrder && ["az", "za", "ubicacion", "piso"].includes(savedOrder)) {
       orderSelect.value = savedOrder;
     }
 
     orderSelect.addEventListener("change", function () {
-      localStorage.setItem("pvsa_lugares_orden", orderSelect.value);
+      window.pvsaStorage.setItem("pvsa_lugares_orden", orderSelect.value);
       ordenar();
       filtrarBusqueda();
     });

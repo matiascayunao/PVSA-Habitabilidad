@@ -1,5 +1,4 @@
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -12,7 +11,7 @@ from ..models import CategoriaObjeto
 from ..models import Objeto
 from ..models import TipoObjeto
 from ..models import ObjetoLugar
-from ..models import TipoLugarObjetoTipico
+from ..servicios.habituales import TIPICOS_POR_TIPO_LUGAR, sugerencias_habituales
 
 
 def _id_consulta(valor):
@@ -76,179 +75,13 @@ def ajax_tipos_por_objeto(request):
     return JsonResponse(data, safe=False)
 
 
-TIPICOS_POR_TIPO_LUGAR = {
-    "Baño": {
-        "Infraestructura": [
-            "Paredes", "Piso", "Cielo", "Techo", "Luces" ,"Ventanas", "Puertas",
-            "Conexión eléctrica", "Interruptores"
-        ],
-        "Sanitario": [
-            "Tasas", "Urinario","Desagües","Papeleros","Lavamanos"
-        ],
-        "Decoración":[
-            "Espejos",
-        ],
-        "Higiene":[
-            "Jaboneras","Dispensadores de papel", "Dispensadores de jabón"
-        ],
-    },
-    "Vestidor": {
-        "Infraestructura": [
-            "Paredes", "Piso", "Cielo", "Techo", "Luces" ,"Ventanas", "Puertas",
-            "Conexión eléctrica", "Interruptores"
-        ],
-        "Mobiliario": [
-            "Bancos", "Casilleros", "Percheros",
-        ],
-        "Sanitario":[
-            "Duchas",
-        ],
-        "Higiene":[
-            "Secadores de toalla","Dispensadores de jabón"
-        ],
-        "Climatización":[
-            "Extractores","Estufas"
-        ],
-    },
-    "Comedor": {
-        "Infraestructura": [
-            "Paredes", "Piso", "Cielo", "Techo", "Luces" ,"Ventanas", "Puertas",
-            "Conexión eléctrica", "Interruptores"
-        ],
-        "Mobiliario":[
-            "Mesas","Sillas","Muebles"
-        ],
-        "Electrodomésticos": [
-            "Refrigerador","Microondas","Dispensador de agua","Televisor",
-        ],
-        "Sanitario":[
-            "Lavaplatos","Papeleros"
-        ],
-        "Climatización":[
-            "Aire acondicionado"
-        ],
-    },
-    "Cafetería":{
-        "Infraestructura": [
-            "Paredes", "Piso", "Cielo", "Techo", "Luces" ,"Ventanas", "Puertas",
-            "Conexión eléctrica", "Interruptores"
-        ],
-        "Mobiliario":[
-            "Mesas","Sillas","Muebles"
-        ],
-        "Electrodomésticos":[
-            "Cafetera","Refrigerador","Dispensador de agua"
-        ],
-        "Climatización":[
-            "Aire acondicionado"
-        ],
-    },
-    "Baño vestidor":{
-        "Infraestructura": [
-            "Paredes", "Piso", "Cielo", "Techo", "Luces" ,"Ventanas", "Puertas",
-            "Conexión eléctrica", "Interruptores"
-        ],
-        "Sanitario": [
-            "Tasas", "Urinario","Desagües","Lavamanos","Duchas","Papeleros"
-        ],
-        "Decoración":[
-            "Espejos",
-        ],
-        "Higiene":[
-            "Secadores de toalla", "Dispensadores de jabón"
-        ],
-        "Mobiliario":[
-            "Bancas","Casilleros",
-        ],
-        "Climatización":[
-            "Extractores"
-        ],
-    }
-}
 
 
 @require_GET
 def objetos_tipicos_por_tipo_lugar(request, tipo_lugar_pk):
 
     tipo_lugar = get_object_or_404(TipoLugar, pk=tipo_lugar_pk)
-
-    qs = (
-        TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo_lugar, activo=True)
-        .select_related("tipo_objeto__objeto__objeto_categoria")
-        .order_by(
-            "orden",
-            "tipo_objeto__objeto__objeto_categoria__nombre_de_categoria",
-            "tipo_objeto__objeto__nombre_del_objeto",
-            "tipo_objeto__marca",
-            "tipo_objeto__material",
-        )
-    )
-
-    if not qs.exists():
-        tipicos = TIPICOS_POR_TIPO_LUGAR.get(tipo_lugar.tipo_de_lugar, {})
-
-        if tipicos:
-            orden = 0
-            with transaction.atomic():
-                for nombre_categoria, lista_objetos in tipicos.items():
-                    categoria_obj, _ = CategoriaObjeto.objects.get_or_create(
-                        nombre_de_categoria=nombre_categoria
-                    )
-
-                    for nombre_obj in lista_objetos:
-                        obj, _ = Objeto.objects.get_or_create(
-                            nombre_del_objeto=nombre_obj,
-                            defaults={"objeto_categoria": categoria_obj},
-                        )
-
-
-                        tipo_objeto, _ = TipoObjeto.objects.get_or_create(
-                            objeto=obj,
-                            marca="",
-                            material="",
-                        )
-
-                        TipoLugarObjetoTipico.objects.get_or_create(
-                            tipo_lugar=tipo_lugar,
-                            tipo_objeto=tipo_objeto,
-                            defaults={"activo": True, "orden": orden},
-                        )
-                        orden += 1
-
-            qs = (
-                TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo_lugar, activo=True)
-                .select_related("tipo_objeto__objeto__objeto_categoria")
-                .order_by(
-                    "orden",
-                    "tipo_objeto__objeto__objeto_categoria__nombre_de_categoria",
-                    "tipo_objeto__objeto__nombre_del_objeto",
-                    "tipo_objeto__marca",
-                    "tipo_objeto__material",
-                )
-            )
-
-    data = []
-    for rel in qs:
-        t = rel.tipo_objeto
-        cat = t.objeto.objeto_categoria
-        obj = t.objeto
-
-        marca = (t.marca or "").strip()
-        material = (t.material or "").strip()
-        extra = ""
-        if marca or material:
-            extra = f" ({marca} {material})".strip()
-
-        data.append(
-            {
-                "categoria_id": cat.id,
-                "objeto_id": obj.id,
-                "tipo_objeto_id": t.id,
-                "label": f"{cat.nombre_de_categoria} - {obj.nombre_del_objeto}{extra}",
-            }
-        )
-
-    return JsonResponse(data, safe=False)
+    return JsonResponse(sugerencias_habituales(tipo_lugar), safe=False)
 
 
 @login_required

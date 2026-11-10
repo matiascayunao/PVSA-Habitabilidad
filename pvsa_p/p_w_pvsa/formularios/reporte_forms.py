@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django import forms
 
 from ..models import ReporteIncidencia
@@ -96,6 +98,7 @@ class ReportePublicoForm(forms.ModelForm):
             if (
                 imagen is None
                 or imagen.format not in {"JPEG", "PNG", "WEBP"}
+                or Path(foto.name).suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}
             ):
                 raise forms.ValidationError(
                     "Solo se permiten fotografías JPG, PNG o WebP."

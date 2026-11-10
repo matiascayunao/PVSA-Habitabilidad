@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, OperationalError
 from django.shortcuts import redirect
 from django.shortcuts import render
 from ..forms import EstructuraCompletaForm
@@ -108,31 +109,39 @@ def _validar_repetidos_estructura(formset, lugar_existente=None):
 
 
 @login_required
-@transaction.atomic
 def crear_estructura(request):
     if request.method == "POST":
         form = EstructuraCompletaForm(request.POST)
+        estructura_valida = form.is_valid()
         objetos_formset = ObjetoLugarFilaFormSet(
             request.POST,
             prefix="obj",
+            form_kwargs={"tipo_lugar": form.cleaned_data.get("tipo_lugar_existente")},
         )
 
         if (
-            form.is_valid()
+            estructura_valida
             and objetos_formset.is_valid()
             and _validar_repetidos_estructura(
                 objetos_formset, form.cleaned_data.get("lugar_existente")
             )
         ):
-            lugar = crear_estructura_con_inventario(
-                form.cleaned_data,
-                (fila.cleaned_data for fila in objetos_formset),
-            )
+            try:
+                lugar = crear_estructura_con_inventario(
+                    form.cleaned_data,
+                    (fila.cleaned_data for fila in objetos_formset),
+                )
+            except ValidationError as error:
+                form.add_error(None, error)
+            except IntegrityError:
+                form.add_error(None, "Los datos cambiaron durante el guardado. Revisa el formulario antes de reintentar.")
+            except OperationalError as error:
+                if not any(causa in str(error).lower() for causa in ["locked", "deadlock", "serialize"]):
+                    raise
+                form.add_error(None, "Otro guardado está en curso. Revisa el formulario y vuelve a intentarlo.")
+            else:
+                return redirect("detalle_lugar", lugar_id=lugar.id)
 
-            return redirect(
-                "detalle_lugar",
-                lugar_id=lugar.id,
-            )
     else:
         form = EstructuraCompletaForm()
         objetos_formset = ObjetoLugarFilaFormSet(

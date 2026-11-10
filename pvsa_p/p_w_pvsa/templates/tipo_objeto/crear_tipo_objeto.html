@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Crear variante · PVSA{% endblock %}
 
@@ -176,8 +177,11 @@ form input,form select,form textarea{width:100%;min-height:38px}
 }
 </style>
 
+<script src="{% static 'p_w_pvsa/js/nombres_similares.js' %}"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  const { normalizar } = window.pvsaNombres;
+
   const objeto = document.getElementById("{{ form.objeto.id_for_label }}");
   const marca = document.getElementById("{{ form.marca.id_for_label }}");
   const material = document.getElementById("{{ form.material.id_for_label }}");
@@ -187,14 +191,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("variantes-existentes-data").textContent
   );
 
-  function normalizar(valor) {
-    return String(valor || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .toLocaleLowerCase("es");
-  }
 
   function verificar() {
     const objetoId = Number(objeto?.value || 0);

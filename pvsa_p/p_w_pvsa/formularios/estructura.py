@@ -1,5 +1,6 @@
 from django import forms
 from django.forms import ModelForm, formset_factory
+from ..servicios.habituales import resolver_sugerencia
 from ..models import Sector, Ubicacion, Piso, TipoLugar, Lugar, CategoriaObjeto, Objeto, TipoObjeto, ObjetoLugar
 
 
@@ -469,6 +470,31 @@ class EstructuraCompletaForm(forms.Form):
 
 
 class ObjetoLugarFilaForm(forms.Form):
+    sugerencia_habitual = forms.CharField(required=False, max_length=120, widget=forms.HiddenInput)
+
+    def __init__(self, *args, tipo_lugar=None, **kwargs):
+        self.tipo_lugar = tipo_lugar
+        super().__init__(*args, **kwargs)
+
+    def limpiar_sugerencia(self, cleaned):
+        sugerencia = resolver_sugerencia(cleaned["sugerencia_habitual"], self.tipo_lugar)
+        for campo, clave in [("categoria_existente", "categoria_id"), ("objeto_existente", "objeto_id"), ("tipo_objeto_existente", "tipo_objeto_id")]:
+            valor = cleaned.get(campo)
+            if valor and valor.pk != sugerencia[clave]:
+                raise forms.ValidationError("Los datos de la sugerencia fueron modificados. Selecciónala nuevamente.")
+        for campo, clave in [("categoria_nueva", "categoria_nombre"), ("objeto_nuevo", "objeto_nombre")]:
+            if cleaned.get(campo) and _normalizar_nombre(cleaned[campo]) != sugerencia[clave]:
+                raise forms.ValidationError("Los datos de la sugerencia fueron modificados. Selecciónala nuevamente.")
+        if cleaned.get("marca") or cleaned.get("material"):
+            raise forms.ValidationError("La variante no corresponde a la sugerencia seleccionada.")
+        cleaned["categoria_existente"] = CategoriaObjeto.objects.filter(pk=sugerencia["categoria_id"]).first()
+        cleaned["objeto_existente"] = Objeto.objects.filter(pk=sugerencia["objeto_id"]).first()
+        cleaned["tipo_objeto_existente"] = TipoObjeto.objects.filter(pk=sugerencia["tipo_objeto_id"]).first()
+        cleaned["categoria_nueva"] = "" if cleaned["categoria_existente"] else sugerencia["categoria_nombre"]
+        cleaned["objeto_nuevo"] = "" if cleaned["objeto_existente"] else sugerencia["objeto_nombre"]
+        cleaned["_sugerencia"] = sugerencia
+        return self.validar_cantidades(cleaned)
+
     categoria_existente = forms.ModelChoiceField(
         label="Categoría existente",
         queryset=CategoriaObjeto.objects.all().order_by("nombre_de_categoria"),
@@ -548,6 +574,7 @@ class ObjetoLugarFilaForm(forms.Form):
     )
 
     cantidad = forms.IntegerField(
+        max_value=32767,
         label="Cantidad total",
         min_value=1,
         required=False,
@@ -582,6 +609,7 @@ class ObjetoLugarFilaForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
     )
     cantidad_mala = forms.IntegerField(
+        max_value=32767,
         label="Con falla",
         min_value=0,
         required=False,
@@ -591,6 +619,7 @@ class ObjetoLugarFilaForm(forms.Form):
         ),
     )
     cantidad_pendiente = forms.IntegerField(
+        max_value=32767,
         label="Por revisar",
         min_value=0,
         required=False,
@@ -600,6 +629,7 @@ class ObjetoLugarFilaForm(forms.Form):
         ),
     )
     minimo_operativo = forms.IntegerField(
+        max_value=32767,
         label="Mínimo operativo",
         min_value=1,
         required=False,
@@ -611,6 +641,8 @@ class ObjetoLugarFilaForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
+        if cleaned.get("sugerencia_habitual"):
+            return self.limpiar_sugerencia(cleaned)
 
         def texto(valor):
             return " ".join((valor or "").split())
@@ -729,6 +761,9 @@ class ObjetoLugarFilaForm(forms.Form):
                     )
                     break
 
+        return self.validar_cantidades(cleaned)
+
+    def validar_cantidades(self, cleaned):
         cantidad = cleaned.get("cantidad")
         cantidad_mala = cleaned.get("cantidad_mala") or 0
         cantidad_pendiente = cleaned.get("cantidad_pendiente") or 0
@@ -764,4 +799,7 @@ ObjetoLugarFilaFormSet = formset_factory(
     ObjetoLugarFilaForm,
     extra=1,
     can_delete=False,
+    max_num=1000,
+    validate_max=True,
+    absolute_max=1000,
 )

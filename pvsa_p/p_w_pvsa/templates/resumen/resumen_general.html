@@ -806,15 +806,19 @@ document.addEventListener("DOMContentLoaded", function () {
   ];
 
   function cargarPreferencias() {
-    if (sortSelect) sortSelect.value = localStorage.getItem("pvsa_resumen_sort") || "priority";
-    if (statusSelect) statusSelect.value = localStorage.getItem("pvsa_resumen_status") || "all";
-    if (incidenceSelect) incidenceSelect.value = localStorage.getItem("pvsa_resumen_incidence") || "all";
+    [[sortSelect, "pvsa_resumen_sort", "priority"],
+     [statusSelect, "pvsa_resumen_status", "all"],
+     [incidenceSelect, "pvsa_resumen_incidence", "all"]].forEach(function ([select, clave, inicial]) {
+      if (!select) return;
+      const valor = window.pvsaStorage.getItem(clave);
+      select.value = Array.from(select.options).some(option => option.value === valor) ? valor : inicial;
+    });
 
     sectionSettings.forEach(function ([toggleId, sectionId, storageKey]) {
       const toggle = document.getElementById(toggleId);
       const section = document.getElementById(sectionId);
       if (!toggle || !section) return;
-      const saved = localStorage.getItem(storageKey);
+      const saved = window.pvsaStorage.getItem(storageKey);
       const visible = saved === null ? true : saved === "1";
       toggle.checked = visible;
       section.classList.toggle("is-hidden", !visible);
@@ -822,13 +826,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function guardarPreferencias() {
-    if (sortSelect) localStorage.setItem("pvsa_resumen_sort", sortSelect.value);
-    if (statusSelect) localStorage.setItem("pvsa_resumen_status", statusSelect.value);
-    if (incidenceSelect) localStorage.setItem("pvsa_resumen_incidence", incidenceSelect.value);
+    if (sortSelect) window.pvsaStorage.setItem("pvsa_resumen_sort", sortSelect.value);
+    if (statusSelect) window.pvsaStorage.setItem("pvsa_resumen_status", statusSelect.value);
+    if (incidenceSelect) window.pvsaStorage.setItem("pvsa_resumen_incidence", incidenceSelect.value);
 
     sectionSettings.forEach(function ([toggleId, sectionId, storageKey]) {
       const toggle = document.getElementById(toggleId);
-      if (toggle) localStorage.setItem(storageKey, toggle.checked ? "1" : "0");
+      if (toggle) window.pvsaStorage.setItem(storageKey, toggle.checked ? "1" : "0");
     });
   }
 
@@ -987,7 +991,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.getElementById("resetSummaryConfig")?.addEventListener("click", function () {
     ["pvsa_resumen_sort", "pvsa_resumen_status", "pvsa_resumen_incidence", "pvsa_resumen_sector", "pvsa_resumen_ubicacion", "pvsa_resumen_objetos"].forEach(function (key) {
-      localStorage.removeItem(key);
+      window.pvsaStorage.removeItem(key);
     });
     window.location.href = "{% url 'resumen_general' %}";
   });
