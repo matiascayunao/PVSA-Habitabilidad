@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db import IntegrityError, transaction
+from ..modelos.estructura import ClaveNormalizada, clave_normalizada
 
 from ..models import CategoriaObjeto, Objeto, TipoObjeto
 
@@ -29,6 +30,7 @@ def resolver_catalogo_inventario(*, modo, objeto_existente_id, objeto_nuevo_nomb
                 raise ValidationError('Selecciona una categoría o escribe una nueva.')
     return (objeto, categoria)
 
+@transaction.atomic
 def obtener_o_crear_variante(*, objeto, categoria, objeto_nuevo_nombre, categoria_nueva_nombre, marca, material):
     campos = [(TipoObjeto, 'marca', marca), (TipoObjeto, 'material', material)]
     if not objeto:
@@ -48,16 +50,16 @@ def obtener_o_crear_variante(*, objeto, categoria, objeto_nuevo_nombre, categori
         if not categoria:
             categoria = CategoriaObjeto.objects.create(nombre_de_categoria=categoria_nueva_nombre)
         objeto = Objeto.objects.create(nombre_del_objeto=objeto_nuevo_nombre, objeto_categoria=categoria)
-    tipos_qs = TipoObjeto.objects.filter(objeto=objeto)
-    if marca:
-        tipos_qs = tipos_qs.filter(marca__iexact=marca)
-    else:
-        tipos_qs = tipos_qs.filter(Q(marca__isnull=True) | Q(marca__exact=''))
-    if material:
-        tipos_qs = tipos_qs.filter(material__iexact=material)
-    else:
-        tipos_qs = tipos_qs.filter(Q(material__isnull=True) | Q(material__exact=''))
+    tipos_qs = TipoObjeto.objects.annotate(
+        _marca=ClaveNormalizada('marca'), _material=ClaveNormalizada('material'),
+    ).filter(objeto=objeto, _marca=clave_normalizada(marca), _material=clave_normalizada(material))
     tipo_objeto = tipos_qs.first()
-    if not tipo_objeto:
-        tipo_objeto = TipoObjeto.objects.create(objeto=objeto, marca=marca, material=material)
+    if tipo_objeto is None:
+        try:
+            with transaction.atomic():
+                tipo_objeto = TipoObjeto.objects.create(objeto=objeto, marca=marca, material=material)
+        except IntegrityError:
+            tipo_objeto = tipos_qs.first()
+            if tipo_objeto is None:
+                raise
     return tipo_objeto

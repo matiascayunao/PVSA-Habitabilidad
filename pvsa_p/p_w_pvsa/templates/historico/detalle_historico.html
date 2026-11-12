@@ -22,7 +22,7 @@
       </div>
 
       <h1 class="h3 fw-bold mb-1 text-break">
-        {{ historico.objeto_del_lugar.tipo_de_objeto.objeto.nombre_del_objeto }}
+        {{ historico.identidad_variante }}
       </h1>
 
       <div class="text-muted">
@@ -73,14 +73,10 @@
           <div class="info-box h-100">
             <div class="small text-muted">Objeto</div>
             <div class="fw-bold">
-              {{ historico.objeto_del_lugar.tipo_de_objeto.objeto.nombre_del_objeto }}
+              {{ historico.identidad_variante }}
             </div>
 
-            <div class="small text-muted mt-1">
-              {{ historico.objeto_del_lugar.tipo_de_objeto.marca|default:"Sin marca" }}
-              ·
-              {{ historico.objeto_del_lugar.tipo_de_objeto.material|default:"Sin material" }}
-            </div>
+            <div class="small text-muted mt-1">Identidad registrada en el histórico</div>
           </div>
         </div>
 

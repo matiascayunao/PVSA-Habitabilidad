@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
-from .estructura import TipoLugar
+from .estructura import TipoLugar, ClaveNormalizada, clave_normalizada
 
 
 class CategoriaObjeto(models.Model):
@@ -88,6 +89,24 @@ class TipoObjeto(models.Model):
         null=True,
 
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                models.F("objeto"), ClaveNormalizada("marca"), ClaveNormalizada("material"),
+                name="pvsa_variante_objeto_unica",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.objeto_id and type(self).objects.annotate(
+            _marca=ClaveNormalizada("marca"), _material=ClaveNormalizada("material"),
+        ).filter(
+            objeto_id=self.objeto_id, _marca=clave_normalizada(self.marca),
+            _material=clave_normalizada(self.material),
+        ).exclude(pk=self.pk).exists():
+            raise ValidationError("Esta variante ya existe para el objeto seleccionado.")
 
     def __str__(self):
 

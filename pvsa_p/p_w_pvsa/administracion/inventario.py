@@ -18,6 +18,7 @@ class HistoricoObjetoInline(nested_admin.NestedTabularInline):
     extra = 0
     can_delete = False
     fields = (
+        "identidad_variante",
         "cantidad_anterior",
         "cantidad_mala_anterior",
         "cantidad_pendiente_anterior",
@@ -260,12 +261,14 @@ class HistoricoObjetoAdminForm(forms.ModelForm):
 
 class HistoricoObjetoAdmin(admin.ModelAdmin):
     form = HistoricoObjetoAdminForm
+    readonly_fields = ("identidad_variante",)
     fieldsets = (
         (
             "Objeto asociado",
             {
                 "fields": (
                     "objeto_del_lugar",
+                    "identidad_variante",
                 )
             },
         ),
@@ -311,9 +314,9 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
         "objeto_del_lugar__lugar__piso__ubicacion",
     )
     search_fields = (
-        "objeto_del_lugar__tipo_de_objeto__objeto__nombre_del_objeto",
-        "objeto_del_lugar__tipo_de_objeto__marca",
-        "objeto_del_lugar__tipo_de_objeto__material",
+        "variante_anterior__objeto",
+        "variante_anterior__marca",
+        "variante_anterior__material",
         "objeto_del_lugar__lugar__nombre_del_lugar",
         "detalle_anterior",
     )
@@ -324,19 +327,7 @@ class HistoricoObjetoAdmin(admin.ModelAdmin):
 
     @admin.display(description="Objeto")
     def objeto_admin(self, obj):
-        objeto_lugar = obj.objeto_del_lugar
-        if (
-            objeto_lugar
-            and objeto_lugar.tipo_de_objeto
-            and objeto_lugar.tipo_de_objeto.objeto
-        ):
-            return (
-                objeto_lugar
-                .tipo_de_objeto
-                .objeto
-                .nombre_del_objeto
-            )
-        return "-"
+        return obj.identidad_variante
 
     @admin.display(description="Lugar")
     def lugar_admin(self, obj):

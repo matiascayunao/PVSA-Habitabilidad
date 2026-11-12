@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, OperationalError, transaction
 from .habituales import materializar_sugerencia, resolver_sugerencia
 from ..models import (
     Sector,
@@ -16,6 +16,20 @@ from ..models import (
 
 def _clave_estructura(valor):
     return ' '.join((valor or '').split()).casefold()
+
+
+def guardar_sin_duplicados(form, guardar=None):
+    try:
+        with transaction.atomic():
+            resultado = guardar() if guardar else form.save()
+            return resultado if resultado is not None else form.instance
+    except IntegrityError:
+        form.add_error(None, "No se guardaron cambios: existe un registro equivalente o se produjo un conflicto de integridad.")
+    except OperationalError as error:
+        if not any(causa in str(error).lower() for causa in ("locked", "deadlock", "serialize")):
+            raise
+        form.add_error(None, "Otro guardado está en curso. Revisa los datos y vuelve a intentarlo.")
+    return None
 
 @transaction.atomic
 def crear_estructura_con_inventario(cd, filas):

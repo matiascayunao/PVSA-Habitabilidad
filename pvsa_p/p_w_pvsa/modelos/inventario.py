@@ -455,42 +455,17 @@ class ObjetoLugar(models.Model):
 
         if anterior:
 
-            hubo_cambio = (
-
-                anterior.cantidad
-
-                != self.cantidad
-
-                or
-
-                (anterior.detalle or "")
-
-                != (self.detalle or "")
-
-                or
-
-                anterior.importancia
-
-                != self.importancia
-
-                or
-
-                anterior.cantidad_mala
-
-                != self.cantidad_mala
-
-                or
-
-                anterior.cantidad_pendiente
-
-                != self.cantidad_pendiente
-
-                or
-
-                anterior.minimo_operativo
-
-                != self.minimo_operativo
-
+            campos_historicos = (
+                "tipo_de_objeto_id", "cantidad", "detalle", "importancia",
+                "cantidad_mala", "cantidad_pendiente", "minimo_operativo",
+            )
+            campos_actualizados = kwargs.get("update_fields")
+            hubo_cambio = any(
+                getattr(anterior, campo) != getattr(self, campo)
+                for campo in campos_historicos
+                if campos_actualizados is None
+                or campo in campos_actualizados
+                or campo.removesuffix("_id") in campos_actualizados
             )
 
             if hubo_cambio:
@@ -520,6 +495,7 @@ class ObjetoLugar(models.Model):
                     HistoricoObjeto.objects.create(
 
                         objeto_del_lugar=self,
+                        variante_anterior=HistoricoObjeto.capturar_variante(anterior),
 
                         cantidad_anterior=(
 
@@ -583,6 +559,8 @@ class ObjetoLugar(models.Model):
 
 
 class HistoricoObjeto(models.Model):
+
+    variante_anterior = models.JSONField(null=True, blank=True, editable=False)
 
     ESTADO = ObjetoLugar.ESTADO
 
@@ -664,75 +642,66 @@ class HistoricoObjeto(models.Model):
 
     fecha_anterior = models.DateField()
 
+    @staticmethod
+    def capturar_variante(inventario):
+        variante = TipoObjeto.objects.select_related("objeto__objeto_categoria").filter(
+            pk=inventario.tipo_de_objeto_id,
+        ).first()
+        if variante is None:
+            return {"version": 1, "variante_id": None}
+        objeto = variante.objeto
+        return {
+            "version": 1,
+            "variante_id": variante.pk,
+            "objeto_id": objeto.pk,
+            "objeto": objeto.nombre_del_objeto,
+            "categoria_id": objeto.objeto_categoria_id,
+            "categoria": objeto.objeto_categoria.nombre_de_categoria,
+            "marca": variante.marca,
+            "material": variante.material,
+        }
+
+    @property
+    def identidad_variante(self):
+        if self.variante_anterior is None:
+            return "Identidad de variante desconocida"
+        if self.variante_anterior.get("variante_id") is None:
+            return "Sin variante asignada"
+        datos = self.variante_anterior
+        return (
+            f"{datos['objeto']} ({datos['categoria']}) - "
+            f"{datos.get('marca') or 'Sin marca'} · "
+            f"{datos.get('material') or 'Sin material'} "
+            f"[variante {datos['variante_id']}]"
+        )
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            if self.variante_anterior is None:
+                inventario = ObjetoLugar.objects.select_for_update().get(
+                    pk=self.objeto_del_lugar_id,
+                )
+                self.variante_anterior = self.capturar_variante(inventario)
+        else:
+            anterior = type(self).objects.get(pk=self.pk)
+            if self.variante_anterior != anterior.variante_anterior:
+                raise ValidationError("La identidad de la variante histórica es inmutable.")
+        super().save(*args, **kwargs)
+
     def __str__(self):
-
         obj = self.objeto_del_lugar
-
         if obj and obj.lugar:
-
             lugar_txt = (
-
                 f"{obj.lugar.nombre_del_lugar} | "
-
                 f"Piso {obj.lugar.piso.piso} | "
-
                 f"{obj.lugar.piso.ubicacion.ubicacion}"
-
             )
-
         else:
-
             lugar_txt = "Sin lugar asignado"
-
-        if (
-
-            obj
-
-            and obj.tipo_de_objeto
-
-            and obj.tipo_de_objeto.objeto
-
-        ):
-
-            objeto_txt = (
-
-                obj.tipo_de_objeto
-
-                .objeto
-
-                .nombre_del_objeto
-
-            )
-
-            marca_txt = (
-
-                obj.tipo_de_objeto.marca
-
-                or "Sin marca"
-
-            )
-
-            material_txt = (
-
-                obj.tipo_de_objeto.material
-
-                or "Sin material"
-
-            )
-
-        else:
-
-            objeto_txt = "Objeto no especificado"
-
-            marca_txt = "Sin marca"
-
-            material_txt = "Sin material"
-
         return (
 
-            f"Histórico de {objeto_txt} "
-
-            f"- {marca_txt} {material_txt} "
+            f"Histórico de {self.identidad_variante} "
 
             f"en {lugar_txt} "
 

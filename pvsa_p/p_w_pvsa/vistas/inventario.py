@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -349,6 +349,10 @@ def crear_objeto_lugar(request, lugar_id):
                         form.add_error(None, "; ".join(error.messages))
                     else:
                         form.add_error(None, "No se pudo guardar por un conflicto de inventario. Revisa la variante y vuelve a intentarlo.")
+                except OperationalError as error:
+                    if not any(causa in str(error).lower() for causa in ("locked", "deadlock", "serialize")):
+                        raise
+                    form.add_error(None, "Otro guardado está en curso. Revisa los datos y vuelve a intentarlo.")
                 else:
                     return redirect("detalle_lugar", lugar_id=lugar.id)
         else:

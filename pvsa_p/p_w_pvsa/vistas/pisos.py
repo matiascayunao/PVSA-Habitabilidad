@@ -1,3 +1,4 @@
+from ..servicios.estructura import guardar_sin_duplicados
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -84,11 +85,12 @@ def crear_piso(request):
     }
 
     if request.method == "POST" and form.is_valid():
-        piso = form.save()
-        return redirect(
-            "detalle_ubicacion",
-            ubicacion_id=piso.ubicacion_id,
-        )
+        piso = guardar_sin_duplicados(form)
+        if piso is not None:
+            return redirect(
+                "detalle_ubicacion",
+                ubicacion_id=piso.ubicacion_id,
+            )
 
     return render(
         request,
@@ -115,8 +117,8 @@ def editar_piso(request, piso_id):
 
     form = EditarPiso(request.POST, instance=piso)
     if form.is_valid():
-        form.save()
-        return redirect("detalle_piso", piso_id=piso.id)
+        if guardar_sin_duplicados(form) is not None:
+            return redirect("detalle_piso", piso_id=piso.id)
 
     return render(
         request,

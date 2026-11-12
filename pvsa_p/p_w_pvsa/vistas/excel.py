@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, OperationalError
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
@@ -59,6 +60,13 @@ def carga_masiva(request):
             result = import_from_rows(rows)
             messages.success(request, f"Importación OK. Creados: {result['created']} | Actualizados: {result['updated']}")
             return redirect('carga_masiva')
+        except (IntegrityError, OperationalError) as error:
+            if isinstance(error, OperationalError) and not any(causa in str(error).lower() for causa in ("locked", "deadlock", "serialize")):
+                raise
+            return render(request, 'excel/carga_masiva.html', {
+                'step': 'preview', 'error': 'No se guardaron cambios: hay un registro equivalente o un guardado concurrente. Revisa los datos y vuelve a intentarlo.',
+                'payload': raw, 'detected': 'manual',
+            })
         except Exception as e:
             return render(request, 'excel/carga_masiva.html', {'step': 'preview', 'error': str(e), 'payload': raw if isinstance(raw, dict) else {'objetos_lugar': []}, 'detected': 'manual'})
     file_obj = request.FILES.get('archivo')

@@ -365,6 +365,7 @@
                 <thead class="table-light">
                   <tr>
                     <th>Fecha</th>
+                    <th>Variante anterior</th>
                     <th>Total</th>
                     <th>Por revisar</th>
                     <th>Con falla</th>
@@ -378,6 +379,7 @@
                   {% for h in historicos %}
                     <tr>
                       <td class="text-nowrap">{{ h.fecha_anterior|date:"d/m/Y" }}</td>
+                      <td>{{ h.identidad_variante }}</td>
                       <td>{{ h.cantidad_anterior }}</td>
                       <td>{{ h.cantidad_pendiente_anterior|default:"0" }}</td>
                       <td>{{ h.cantidad_mala_anterior|default:"0" }}</td>
@@ -421,6 +423,7 @@
                   <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
                     <div>
                       <div class="small text-muted">Registro anterior</div>
+                      <div>{{ h.identidad_variante }}</div>
                       <div class="fw-bold">{{ h.fecha_anterior|date:"d/m/Y" }}</div>
                     </div>
 

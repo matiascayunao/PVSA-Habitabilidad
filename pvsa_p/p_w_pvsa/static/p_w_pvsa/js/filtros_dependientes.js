@@ -7,7 +7,7 @@
     document.querySelector("form[method='get']") ||
     document.querySelector("form[method='GET']");
 
-  if (!root) return;
+  if (!root || root.dataset.filtrosDependientes === "0") return;
 
   function getSelect(name) {
     return root.querySelector(`select[name="${name}"]`);

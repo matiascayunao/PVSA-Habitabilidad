@@ -90,9 +90,9 @@
         <div
           class="col-12 col-xl-6 historico-item"
           data-fecha="{{ h.fecha_anterior|date:'Y-m-d' }}"
-          data-objeto="{{ h.objeto_del_lugar.tipo_de_objeto.objeto.nombre_del_objeto|lower|escape }}"
+          data-objeto="{{ h.identidad_variante|lower|escape }}"
           data-lugar="{{ h.objeto_del_lugar.lugar.nombre_del_lugar|lower|escape }}"
-          data-search="{{ h.objeto_del_lugar.tipo_de_objeto.objeto.nombre_del_objeto|lower|escape }} {{ h.objeto_del_lugar.tipo_de_objeto.marca|default:''|lower|escape }} {{ h.objeto_del_lugar.tipo_de_objeto.material|default:''|lower|escape }} {{ h.objeto_del_lugar.lugar.nombre_del_lugar|lower|escape }} {{ h.objeto_del_lugar.lugar.piso.ubicacion.ubicacion|lower|escape }} {{ h.objeto_del_lugar.lugar.piso.ubicacion.sector.sector|lower|escape }}"
+          data-search="{{ h.identidad_variante|lower|escape }} {{ h.variante_anterior.marca|default:''|lower|escape }} {{ h.variante_anterior.material|default:''|lower|escape }} {{ h.objeto_del_lugar.lugar.nombre_del_lugar|lower|escape }} {{ h.objeto_del_lugar.lugar.piso.ubicacion.ubicacion|lower|escape }} {{ h.objeto_del_lugar.lugar.piso.ubicacion.sector.sector|lower|escape }}"
         >
           <a
             href="{% url 'detalle_historico' historico_id=h.id %}"
@@ -113,7 +113,7 @@
                       </div>
 
                       <h2 class="h6 fw-bold mb-1 text-break">
-                        {{ h.objeto_del_lugar.tipo_de_objeto.objeto.nombre_del_objeto }}
+                        {{ h.identidad_variante }}
                       </h2>
 
                       <div class="small text-muted text-break">
@@ -216,7 +216,8 @@
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable filtros-modal-dialog">
     <div class="modal-content border-0 rounded-4 shadow">
 
-      <form method="get">
+      <form method="get" id="filtrosHistoricoForm" data-filtros-dependientes="0"></form>
+      <div>
 
         <div class="modal-header border-bottom">
           <div>
@@ -244,7 +245,7 @@
               Lugar
             </label>
 
-            <select name="lugar" id="filtroLugar" class="form-select">
+            <select name="lugar" id="filtroLugar" form="filtrosHistoricoForm" class="form-select">
               <option value="">Todos los lugares</option>
 
               {% for lugar in lugares %}
@@ -265,7 +266,7 @@
               Objeto
             </label>
 
-            <select name="objeto" id="filtroObjeto" class="form-select">
+            <select name="objeto" id="filtroObjeto" form="filtrosHistoricoForm" class="form-select">
               <option value="">Todos los objetos</option>
 
               {% for objeto in objetos_catalogo %}
@@ -273,8 +274,7 @@
                   value="{{ objeto.id }}"
                   {% if objeto_actual == objeto.id|stringformat:'s' %}selected{% endif %}
                 >
-                  {{ objeto.nombre_del_objeto }}
-                  · {{ objeto.objeto_categoria.nombre_de_categoria }}
+                  {{ objeto.etiqueta }}
                 </option>
               {% endfor %}
             </select>
@@ -285,7 +285,7 @@
               Variante
             </label>
 
-            <select name="tipo" id="filtroTipo" class="form-select">
+            <select name="tipo" id="filtroTipo" form="filtrosHistoricoForm" class="form-select">
               <option value="">Todas las variantes</option>
 
               {% for tipo in tipos %}
@@ -293,9 +293,7 @@
                   value="{{ tipo.id }}"
                   {% if tipo_actual == tipo.id|stringformat:'s' %}selected{% endif %}
                 >
-                  {{ tipo.objeto.nombre_del_objeto }}
-                  · {{ tipo.marca|default:"Sin marca" }}
-                  · {{ tipo.material|default:"Sin material" }}
+                  {{ tipo.etiqueta }}
                 </option>
               {% endfor %}
             </select>
@@ -306,7 +304,7 @@
               Estado anterior
             </label>
 
-            <select name="estado" id="filtroEstado" class="form-select">
+            <select name="estado" id="filtroEstado" form="filtrosHistoricoForm" class="form-select">
               <option value="">Todos los estados</option>
 
               {% for valor, etiqueta in estados %}
@@ -333,13 +331,13 @@
             Limpiar
           </a>
 
-          <button type="submit" class="btn pvsa-btn px-4">
+          <button type="submit" form="filtrosHistoricoForm" class="btn pvsa-btn px-4">
             <i class="bi bi-funnel me-1"></i>
             Aplicar filtros
           </button>
         </div>
 
-      </form>
+      </div>
     </div>
   </div>
 </div>

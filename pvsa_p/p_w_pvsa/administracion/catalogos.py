@@ -2,6 +2,7 @@ import nested_admin
 from django.contrib import admin
 
 from ..models import Objeto, TipoObjeto, TipoLugarObjetoTipico
+from .estructura import UnicidadAdminMixin
 
 
 class TipoObjetoInline(nested_admin.NestedTabularInline):
@@ -24,7 +25,7 @@ class ObjetoInline(nested_admin.NestedStackedInline):
     )
 
 
-class CategoriaObjetoAdmin(nested_admin.NestedModelAdmin):
+class CategoriaObjetoAdmin(UnicidadAdminMixin, nested_admin.NestedModelAdmin):
     inlines = [
         ObjetoInline,
     ]
@@ -81,7 +82,7 @@ class ObjetoAdmin(admin.ModelAdmin):
     )
 
 
-class TipoObjetoAdmin(admin.ModelAdmin):
+class TipoObjetoAdmin(UnicidadAdminMixin, admin.ModelAdmin):
     list_display = (
         "objeto",
         "categoria_admin",

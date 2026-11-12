@@ -3,6 +3,7 @@ import unicodedata
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from ..modelos.estructura import ClaveNormalizada, clave_normalizada
 from openpyxl import load_workbook
 
 from ..models import (
@@ -582,11 +583,13 @@ def import_from_rows(rows):
                 if not tipo_lugar_obj:
                     tipo_lugar_obj = TipoLugar.objects.create(tipo_de_lugar=tipo_de_lugar)
                 cache_tipo_lugar[tipo_lugar_key] = tipo_lugar_obj
-            lugar_key = (key(lugar), piso_obj.id)
+            lugar_key = (clave_normalizada(lugar), piso_obj.id)
             if lugar_key in cache_lugar:
                 lugar_obj = cache_lugar[lugar_key]
             else:
-                lugar_obj = Lugar.objects.select_related('lugar_tipo_lugar').filter(piso=piso_obj, nombre_del_lugar__iexact=lugar).first()
+                lugar_obj = Lugar.objects.select_related('lugar_tipo_lugar').annotate(
+                    _nombre=ClaveNormalizada('nombre_del_lugar'),
+                ).filter(piso=piso_obj, _nombre=clave_normalizada(lugar)).first()
                 if not lugar_obj:
                     lugar_obj = Lugar.objects.create(nombre_del_lugar=lugar, piso=piso_obj, lugar_tipo_lugar=tipo_lugar_obj)
                 cache_lugar[lugar_key] = lugar_obj
@@ -616,7 +619,7 @@ def import_from_rows(rows):
             
             marca = normalizar_marca(marca_excel)
             material = normalizar_material(material_excel)
-            variante_key = (objeto_obj.id, key(marca), key(material))
+            variante_key = (objeto_obj.id, clave_normalizada(marca), clave_normalizada(material))
             if variante_key in cache_variante:
                 tipo_obj = cache_variante[variante_key]
             else:
@@ -624,7 +627,7 @@ def import_from_rows(rows):
                 for existente in TipoObjeto.objects.filter(objeto=objeto_obj):
                     marca_existente = normalizar_marca(existente.marca)
                     material_existente = normalizar_material(existente.material)
-                    if key(marca_existente) == key(marca) and key(material_existente) == key(material):
+                    if clave_normalizada(marca_existente) == clave_normalizada(marca) and clave_normalizada(material_existente) == clave_normalizada(material):
                         tipo_obj = existente
                         break
                 if not tipo_obj:

@@ -1,3 +1,4 @@
+from ..servicios.estructura import guardar_sin_duplicados
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -216,11 +217,12 @@ def crear_lugar(request):
     }
 
     if request.method == "POST" and form.is_valid():
-        lugar = form.save()
-        return redirect(
-            "detalle_lugar",
-            lugar_id=lugar.id,
-        )
+        lugar = guardar_sin_duplicados(form)
+        if lugar is not None:
+            return redirect(
+                "detalle_lugar",
+                lugar_id=lugar.id,
+            )
 
     return render(
         request,
@@ -284,12 +286,11 @@ def editar_lugar(request, lugar_id):
 
             lugar_actualizado.qr_activo = True
 
-        lugar_actualizado.save()
-
-        return redirect(
-            "detalle_lugar",
-            lugar_id=lugar_actualizado.id,
-        )
+        if guardar_sin_duplicados(form, lugar_actualizado.save) is not None:
+            return redirect(
+                "detalle_lugar",
+                lugar_id=lugar_actualizado.id,
+            )
 
     return render(
         request,

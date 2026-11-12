@@ -2,12 +2,31 @@ import uuid
 
 import nested_admin
 from django.contrib import admin
-from django.db import transaction
+from django.db import IntegrityError, OperationalError, transaction
+from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.html import format_html
 
 from ..models import Lugar, Piso, Ubicacion
 from .inventario import ObjetoLugarInline
+
+
+class UnicidadAdminMixin:
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        if request.method != "POST":
+            return super().changeform_view(request, object_id, form_url, extra_context)
+        try:
+            with transaction.atomic():
+                return super().changeform_view(request, object_id, form_url, extra_context)
+        except IntegrityError:
+            return HttpResponse(
+                "No se guardaron cambios: existe un registro equivalente o se produjo un conflicto de integridad. Revisa los datos antes de reintentar.",
+                status=409,
+            )
+        except OperationalError as error:
+            if not any(causa in str(error).lower() for causa in ("locked", "deadlock", "serialize")):
+                raise
+            return HttpResponse("Otro guardado está en curso. Vuelve a intentarlo.", status=409)
 
 
 class LugarInline(nested_admin.NestedStackedInline):
@@ -54,7 +73,7 @@ class UbicacionInline(nested_admin.NestedStackedInline):
     )
 
 
-class SectorAdmin(nested_admin.NestedModelAdmin):
+class SectorAdmin(UnicidadAdminMixin, nested_admin.NestedModelAdmin):
     inlines = [
         UbicacionInline,
     ]
@@ -66,7 +85,7 @@ class SectorAdmin(nested_admin.NestedModelAdmin):
     )
 
 
-class UbicacionAdmin(admin.ModelAdmin):
+class UbicacionAdmin(UnicidadAdminMixin, admin.ModelAdmin):
     list_display = (
         "ubicacion",
         "sector",
@@ -80,7 +99,7 @@ class UbicacionAdmin(admin.ModelAdmin):
     )
 
 
-class PisoAdmin(admin.ModelAdmin):
+class PisoAdmin(UnicidadAdminMixin, admin.ModelAdmin):
     list_display = (
         "piso",
         "ubicacion",
@@ -101,7 +120,7 @@ class PisoAdmin(admin.ModelAdmin):
         return obj.ubicacion.sector
 
 
-class LugarAdmin(nested_admin.NestedModelAdmin):
+class LugarAdmin(UnicidadAdminMixin, nested_admin.NestedModelAdmin):
     inlines = [
         ObjetoLugarInline,
     ]

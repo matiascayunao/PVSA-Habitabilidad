@@ -6,8 +6,6 @@ from django.urls import reverse
 from ..forms import CrearHistorico
 from ..forms import EditarHistorico
 from ..models import Lugar
-from ..models import Objeto
-from ..models import TipoObjeto
 from ..models import ObjetoLugar
 from ..models import HistoricoObjeto
 from .eliminacion import _confirm_delete
@@ -38,13 +36,13 @@ def lista_historicos(request):
 
     if objeto_id:
         try:
-            qs = qs.filter(objeto_del_lugar__tipo_de_objeto__objeto_id=int(objeto_id))
+            qs = qs.filter(variante_anterior__objeto_id=int(objeto_id))
         except ValueError:
             objeto_id = ""
 
     if tipo_id:
         try:
-            qs = qs.filter(objeto_del_lugar__tipo_de_objeto_id=int(tipo_id))
+            qs = qs.filter(variante_anterior__variante_id=int(tipo_id))
         except ValueError:
             tipo_id = ""
 
@@ -71,17 +69,21 @@ def lista_historicos(request):
         )
     )
 
-    objetos = (
-        Objeto.objects.select_related("objeto_categoria")
-        .all()
-        .order_by("objeto_categoria__nombre_de_categoria", "nombre_del_objeto")
-    )
-
-    tipos = (
-        TipoObjeto.objects.select_related("objeto", "objeto__objeto_categoria")
-        .all()
-        .order_by("objeto__nombre_del_objeto", "marca", "material")
-    )
+    objetos = {}
+    tipos = {}
+    for historico in HistoricoObjeto.objects.exclude(variante_anterior=None).order_by("pk"):
+        datos = historico.variante_anterior
+        if datos.get("variante_id") is None:
+            continue
+        etiqueta_objeto = f"{datos['objeto']} · {datos['categoria']}"
+        objetos[datos["objeto_id"]] = {
+            "id": datos["objeto_id"], "etiqueta": etiqueta_objeto,
+        }
+        tipos[datos["variante_id"]] = {
+            "id": datos["variante_id"], "etiqueta": historico.identidad_variante,
+        }
+    objetos = sorted(objetos.values(), key=lambda dato: dato["etiqueta"].casefold())
+    tipos = sorted(tipos.values(), key=lambda dato: dato["etiqueta"].casefold())
     estados = HistoricoObjeto._meta.get_field("estado_anterior").choices
 
     return render(

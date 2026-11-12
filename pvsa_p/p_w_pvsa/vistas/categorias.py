@@ -1,3 +1,4 @@
+from ..servicios.estructura import guardar_sin_duplicados
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -498,11 +499,12 @@ def crear_tipo_objeto(request):
     }
 
     if request.method == "POST" and form.is_valid():
-        tipo = form.save()
-        return redirect(
-            "detalle_tipo_objeto",
-            tipo_objeto_id=tipo.id,
-        )
+        tipo = guardar_sin_duplicados(form)
+        if tipo is not None:
+            return redirect(
+                "detalle_tipo_objeto",
+                tipo_objeto_id=tipo.id,
+            )
 
     return render(
         request,
@@ -529,8 +531,8 @@ def editar_tipo_objeto(request, tipo_objeto_id):
 
     form = EditarTipoObjeto(request.POST, instance=tipo)
     if form.is_valid():
-        form.save()
-        return redirect("detalle_tipo_objeto", tipo_objeto_id=tipo.id)
+        if guardar_sin_duplicados(form) is not None:
+            return redirect("detalle_tipo_objeto", tipo_objeto_id=tipo.id)
 
     return render(
         request,

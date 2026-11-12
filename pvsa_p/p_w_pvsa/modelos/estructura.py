@@ -1,6 +1,32 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.backends.signals import connection_created
+from django.db.utils import NotSupportedError
+
+
+def clave_normalizada(valor):
+    return " ".join((valor or "").split()).casefold()
+
+
+def registrar_clave_sqlite(sender, connection, **kwargs):
+    if connection.vendor == "sqlite":
+        connection.connection.create_function("PVSA_CLAVE", 1, clave_normalizada, deterministic=True)
+
+
+connection_created.connect(registrar_clave_sqlite, dispatch_uid="pvsa_clave_sqlite", weak=False)
+
+
+class ClaveNormalizada(models.Func):
+    function = "PVSA_CLAVE"
+    arity = 1
+    output_field = models.CharField()
+
+    def as_sql(self, compiler, connection, **extra_context):
+        if connection.vendor != "sqlite":
+            raise NotSupportedError("La unicidad normalizada de PVSA requiere SQLite.")
+        return super().as_sql(compiler, connection, **extra_context)
 
 
 class Sector(models.Model):
@@ -44,6 +70,18 @@ class Piso(models.Model):
         on_delete=models.RESTRICT,
 
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["ubicacion", "piso"], name="pvsa_piso_ubicacion_unico"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.ubicacion_id and self.piso is not None and type(self).objects.filter(
+            ubicacion_id=self.ubicacion_id, piso=self.piso,
+        ).exclude(pk=self.pk).exists():
+            raise ValidationError({"piso": "Este piso ya existe en la ubicación seleccionada."})
 
     def __str__(self):
 
@@ -148,6 +186,21 @@ class Lugar(models.Model):
         ),
 
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                models.F("piso"), ClaveNormalizada("nombre_del_lugar"),
+                name="pvsa_lugar_piso_nombre_unico",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.piso_id and type(self).objects.annotate(
+            _nombre=ClaveNormalizada("nombre_del_lugar"),
+        ).filter(piso_id=self.piso_id, _nombre=clave_normalizada(self.nombre_del_lugar)).exclude(pk=self.pk).exists():
+            raise ValidationError({"nombre_del_lugar": "Ya existe un lugar con este nombre en el piso seleccionado."})
 
     def save(self, *args, **kwargs):
 
