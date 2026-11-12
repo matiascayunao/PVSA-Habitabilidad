@@ -12,7 +12,10 @@
       <a class="btn btn-outline-primary" href="{% url 'jefe_mis_reportes' %}">
         <i class="bi bi-clipboard-check me-1"></i>Mis reportes
       </a>
-      <a class="btn btn-outline-secondary" href="{% url 'signout' %}">Cerrar sesión</a>
+      <form method="post" action="{% url 'signout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary">Cerrar sesión</button>
+      </form>
     </div>
   </div>
 

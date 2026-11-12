@@ -8,6 +8,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect
 from ..models import Sector
 from ..models import Ubicacion
 
@@ -55,6 +57,7 @@ def signup(request):
     )
 
 
+@csrf_protect
 def signin(request):
     from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -97,10 +100,20 @@ def signin(request):
     ):
         return redirect(destino_qr)
 
+    destino = request.POST.get("next") or request.GET.get("next")
+    if destino and url_has_allowed_host_and_scheme(
+        destino,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(destino)
+
     return redirect("home")
 
 
 @login_required
+@require_POST
+@csrf_protect
 def signout(request):
     logout(request)
     return redirect("signin")

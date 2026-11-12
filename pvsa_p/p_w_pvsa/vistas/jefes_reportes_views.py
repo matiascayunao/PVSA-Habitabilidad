@@ -4,14 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
 from ..models import ReporteIncidencia
-from ..servicios.incidencias import guardar_reporte_interno
+from ..servicios.incidencias import guardar_reporte_interno, reporte_atomico
 from ..pvsa_permisos import es_jefe_departamento, lugares_visibles_jefe
 from ..formularios.reporte_forms import ReportePublicoForm
 
@@ -42,14 +41,14 @@ def reportar_incidencia_jefe(request, lugar_id):
         form = ReportePublicoForm(request.POST, request.FILES)
 
         if form.is_valid():
-            with transaction.atomic():
+            reporte = form.save(commit=False)
+            with reporte_atomico(reporte):
                 
                 if not lugares_visibles_jefe(request.user).filter(
                     pk=lugar.pk
                 ).exists():
                     raise Http404("No tienes acceso a este lugar.")
 
-                reporte = form.save(commit=False)
                 guardar_reporte_interno(reporte, lugar, request.user, form.cleaned_data)
 
             messages.success(

@@ -39,6 +39,8 @@
 
         <form method="post" class="auth-form" novalidate>
           {% csrf_token %}
+          {% firstof request.POST.next request.GET.next "" as destino_login %}
+          <input type="hidden" name="next" value="{{ destino_login }}">
 
           <div class="mb-3">
             <label

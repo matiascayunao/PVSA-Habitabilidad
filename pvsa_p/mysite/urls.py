@@ -16,10 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from p_w_pvsa.vistas.autenticacion import signin
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('_nested_admin/', include('nested_admin.urls')),
     path("", include("p_w_pvsa.urls")),
+    path("accounts/login/", signin, name="login"),
     path("accounts/", include("django.contrib.auth.urls")),
 ]

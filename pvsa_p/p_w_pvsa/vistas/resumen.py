@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import render
+from django.http import HttpResponseBadRequest
 from ..models import Sector
 from ..models import Ubicacion
 from ..models import Piso
@@ -56,13 +57,26 @@ def _cerrar_resumen(destino):
 
 def resumen_general(request):
 
-    sector_id = request.GET.get("sector") or None
-    ubicacion_id = request.GET.get("ubicacion") or None
-    piso_id = request.GET.get("piso") or None
-    tipo_lugar_id = request.GET.get("tipo_lugar") or None
-    categoria_id = request.GET.get("categoria") or None
-    objeto_id = request.GET.get("objeto") or None
-    tipo_objeto_id = request.GET.get("tipo_objeto") or None
+    identificadores = {}
+    for nombre in ("sector", "ubicacion", "piso", "tipo_lugar", "categoria", "objeto", "tipo_objeto"):
+        valor = request.GET.get(nombre, "").strip()
+        if valor:
+            try:
+                numero = int(valor)
+            except ValueError:
+                return HttpResponseBadRequest("Identificador de filtro inválido.")
+            if not 0 < numero <= 9223372036854775807:
+                return HttpResponseBadRequest("Identificador de filtro inválido.")
+            valor = str(numero)
+        identificadores[nombre] = valor or None
+
+    sector_id = identificadores["sector"]
+    ubicacion_id = identificadores["ubicacion"]
+    piso_id = identificadores["piso"]
+    tipo_lugar_id = identificadores["tipo_lugar"]
+    categoria_id = identificadores["categoria"]
+    objeto_id = identificadores["objeto"]
+    tipo_objeto_id = identificadores["tipo_objeto"]
     estado = request.GET.get("estado") or None
     marca = request.GET.get("marca") or None
     material = request.GET.get("material") or None
