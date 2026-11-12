@@ -1,12 +1,13 @@
 from io import BytesIO
 from copy import copy
 
+from django.db.models import Prefetch, prefetch_related_objects
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.workbook.workbook import Workbook as WorkbookType
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from .models import ObjetoLugar
+from .models import Lugar, ObjetoLugar, Piso
 
 
 THIN = Side(style="thin", color="000000")
@@ -292,6 +293,29 @@ def build_excel_sectores(ubicaciones_qs):
     wb = Workbook()
     wb.remove(wb.active)
     ubicaciones = list(ubicaciones_qs)
+    prefetch_related_objects(
+        ubicaciones,
+        "sector",
+        Prefetch(
+            "piso_set",
+            queryset=Piso.objects.order_by("piso").prefetch_related(
+                Prefetch(
+                    "lugar_set",
+                    queryset=Lugar.objects.select_related("lugar_tipo_lugar").order_by("id").prefetch_related(
+                        Prefetch(
+                            "objetos_lugar",
+                            queryset=ObjetoLugar.objects.select_related(
+                                "tipo_de_objeto__objeto__objeto_categoria",
+                            ).order_by("id"),
+                            to_attr="_excel_objetos",
+                        ),
+                    ),
+                    to_attr="_excel_lugares",
+                ),
+            ),
+            to_attr="_excel_pisos",
+        ),
+    )
     if not ubicaciones:
         ws = wb.create_sheet(title="Sin ubicaciones")
         _celda_texto(ws, 1, 1, "No existen ubicaciones para exportar.")
@@ -314,7 +338,7 @@ def build_excel_sectores(ubicaciones_qs):
 
         row = 3
 
-        pisos = ub.piso_set.all().order_by("piso")
+        pisos = ub._excel_pisos
         for p in pisos:
             piso_row = row
 
@@ -335,16 +359,11 @@ def build_excel_sectores(ubicaciones_qs):
 
             row = piso_row + 2
 
-            lugares = p.lugar_set.all().order_by("id")
+            lugares = p._excel_lugares
             piso_detail_start = piso_row + 1 # todo lo de abajo del piso
 
             for lugar in lugares:
-                objetos = (
-                    ObjetoLugar.objects
-                    .filter(lugar=lugar)
-                    .select_related("tipo_de_objeto__objeto__objeto_categoria")
-                    .order_by("id")
-                )
+                objetos = lugar._excel_objetos
                 row = _write_lugar_block(ws, row, lugar, objetos)
 
             piso_detail_end = row - 1
