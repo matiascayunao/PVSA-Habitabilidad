@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,7 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+PVSA_ENV = os.environ.get("PVSA_ENV", "development").lower()
+if PVSA_ENV not in {"development", "production"}:
+    raise ImproperlyConfigured("PVSA_ENV debe ser development o production.")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Falta DJANGO_SECRET_KEY.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
@@ -127,3 +134,88 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_URL = "signin"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "signin"
+
+
+if PVSA_ENV == "production":
+    import os
+    from pathlib import Path
+    import re
+    from urllib.parse import urlsplit
+
+    from django.core.exceptions import ImproperlyConfigured
+
+
+    def _required(name):
+        value = os.environ.get(name, "").strip()
+        if not value:
+            raise ImproperlyConfigured(f"Falta la variable de producción {name}.")
+        return value
+
+
+    def _directory(name):
+        path = Path(_required(name))
+        if not path.is_absolute():
+            raise ImproperlyConfigured(f"{name} debe ser una ruta absoluta.")
+        if path.exists() and not path.is_dir():
+            raise ImproperlyConfigured(f"{name} debe identificar un directorio.")
+        return path.resolve()
+
+
+    def _overlap(first, second):
+        return first.is_relative_to(second) or second.is_relative_to(first)
+
+
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    SECRET_KEY = _required("DJANGO_SECRET_KEY")
+    if len(SECRET_KEY) < 50 or len(set(SECRET_KEY)) < 5 or SECRET_KEY.startswith("django-insecure-"):
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY debe ser una clave aleatoria fuerte de al menos 50 caracteres.")
+    DEBUG = False
+    ALLOWED_HOSTS = [host.strip().lower() for host in _required("PVSA_ALLOWED_HOSTS").split(",")]
+    if any(not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host) or ".." in host
+           for host in ALLOWED_HOSTS):
+        raise ImproperlyConfigured("PVSA_ALLOWED_HOSTS requiere nombres o IPv4 explícitos, sin esquema, puerto ni comodines.")
+    DATA_ROOT = _directory("PVSA_DATA_ROOT")
+    STATIC_ROOT = _directory("PVSA_STATIC_ROOT")
+    if any(_overlap(first, second) for first, second in (
+        (DATA_ROOT, STATIC_ROOT), (DATA_ROOT, BASE_DIR.parent), (STATIC_ROOT, BASE_DIR.parent),
+    )):
+        raise ImproperlyConfigured("Datos, estáticos y código deben ocupar directorios separados, sin contenerse entre sí.")
+    PRIVATE_EVIDENCE_ROOT = DATA_ROOT / "pvsa_evidencias_privadas"
+    MEDIA_ROOT = DATA_ROOT / "media"
+    MEDIA_URL = "/media/"
+    STATIC_URL = "/static/"
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"},
+    }
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = "Lax"
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip() for origin in os.environ.get("PVSA_CSRF_TRUSTED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    for origin in CSRF_TRUSTED_ORIGINS:
+        parsed = urlsplit(origin)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+                or parsed.path or parsed.query or parsed.fragment or "*" in origin):
+            raise ImproperlyConfigured("PVSA_CSRF_TRUSTED_ORIGINS solo admite orígenes HTTPS explícitos.")
+    proxy_https = os.environ.get("PVSA_TRUST_PROXY_HTTPS", "false").lower()
+    if proxy_https not in ("true", "false"):
+        raise ImproperlyConfigured("PVSA_TRUST_PROXY_HTTPS debe ser true o false.")
+    if proxy_https == "true":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    try:
+        SECURE_HSTS_SECONDS = int(os.environ.get("PVSA_HSTS_SECONDS", "0"))
+    except ValueError as error:
+        raise ImproperlyConfigured("PVSA_HSTS_SECONDS debe ser un entero no negativo.") from error
+    if SECURE_HSTS_SECONDS < 0:
+        raise ImproperlyConfigured("PVSA_HSTS_SECONDS debe ser un entero no negativo.")
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False

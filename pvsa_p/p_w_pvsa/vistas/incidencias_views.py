@@ -45,7 +45,13 @@ def _verificar_administrador(usuario):
 
 def _id_filtro(valor):
     valor = str(valor or "").strip()
-    return int(valor) if valor.isdecimal() else None
+    if len(valor) > 19 or not valor.isdecimal():
+        return None
+    try:
+        numero = int(valor)
+    except ValueError:
+        return None
+    return numero if numero <= 9223372036854775807 else None
 
 
 @login_required(login_url="signin")

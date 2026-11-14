@@ -15,7 +15,7 @@ class EvidenciaPrivadaStorage(FileSystemStorage):
 
     def __init__(self):
         super().__init__(
-            location=Path(settings.BASE_DIR) / "pvsa_evidencias_privadas",
+            location=getattr(settings, "PRIVATE_EVIDENCE_ROOT", Path(settings.BASE_DIR) / "pvsa_evidencias_privadas"),
             base_url=None,
         )
 

@@ -262,29 +262,7 @@ def editar_lugar(request, lugar_id):
 
     if request.method == "POST" and form.is_valid():
 
-        # Consultar el valor guardado en la base de datos
-        # antes de aplicar los cambios del formulario.
-        era_area_comun = (
-            Lugar.objects
-            .values_list("es_area_comun", flat=True)
-            .get(pk=lugar.pk)
-        )
-
         lugar_actualizado = form.save(commit=False)
-
-        # Sincronizar QR únicamente si un administrador
-        # modificó la clasificación del lugar.
-        if (
-            puede_clasificar
-            and era_area_comun != lugar_actualizado.es_area_comun
-        ):
-            lugar_actualizado.visibilidad_qr = (
-                "publico"
-                if lugar_actualizado.es_area_comun
-                else "privado"
-            )
-
-            lugar_actualizado.qr_activo = True
 
         if guardar_sin_duplicados(form, lugar_actualizado.save) is not None:
             return redirect(

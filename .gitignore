@@ -19,3 +19,7 @@ staticfiles/
 
 *.bak_roles
 *.bak
+
+/Microsoft/Windows/PowerShell/
+
+respaldo_pvsa_*/ 
