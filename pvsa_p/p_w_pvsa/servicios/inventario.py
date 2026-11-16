@@ -3,16 +3,21 @@ from django.db import IntegrityError, transaction
 from ..modelos.estructura import ClaveNormalizada, clave_normalizada
 
 from ..models import CategoriaObjeto, Objeto, TipoObjeto
+from .identificadores import entero_identificador
 
 
 def resolver_catalogo_inventario(*, modo, objeto_existente_id, objeto_nuevo_nombre, categoria_existente_id, categoria_nueva_nombre):
     objeto = None
     categoria = None
     if modo == 'variante':
-        if not objeto_existente_id.isdigit():
+        try:
+            objeto_id = entero_identificador(objeto_existente_id)
+            if objeto_id <= 0:
+                raise ValueError
+        except ValueError:
             raise ValidationError('Selecciona el objeto al que quieres agregar una nueva marca o material.')
         else:
-            objeto = Objeto.objects.filter(pk=int(objeto_existente_id)).first()
+            objeto = Objeto.objects.filter(pk=objeto_id).first()
             if not objeto:
                 raise ValidationError('El objeto seleccionado ya no existe.')
     elif not objeto_nuevo_nombre:
@@ -20,8 +25,14 @@ def resolver_catalogo_inventario(*, modo, objeto_existente_id, objeto_nuevo_nomb
     else:
         objeto = Objeto.objects.filter(nombre_del_objeto__iexact=objeto_nuevo_nombre).first()
         if not objeto:
-            if categoria_existente_id.isdigit():
-                categoria = CategoriaObjeto.objects.filter(pk=int(categoria_existente_id)).first()
+            if categoria_existente_id:
+                try:
+                    categoria_id = entero_identificador(categoria_existente_id)
+                    if categoria_id <= 0:
+                        raise ValueError
+                except ValueError:
+                    raise ValidationError('Selecciona una categoría válida.')
+                categoria = CategoriaObjeto.objects.filter(pk=categoria_id).first()
                 if not categoria:
                     raise ValidationError('La categoría seleccionada ya no existe.')
             elif categoria_nueva_nombre:

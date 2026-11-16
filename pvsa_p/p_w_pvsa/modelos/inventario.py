@@ -1,3 +1,5 @@
+from copy import copy
+
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
@@ -449,9 +451,30 @@ class ObjetoLugar(models.Model):
 
             ).first()
 
-        self.actualizar_estado_automatico()
+        campos_actualizados = kwargs.get("update_fields")
+        if anterior is not None and campos_actualizados is not None:
+            campos_actualizados = set(campos_actualizados)
+            kwargs["update_fields"] = campos_actualizados
+            self.estado = self.calcular_estado(
+                self.cantidad_mala if "cantidad_mala" in campos_actualizados else anterior.cantidad_mala,
+                self.cantidad_pendiente if "cantidad_pendiente" in campos_actualizados else anterior.cantidad_pendiente,
+            )
+            if campos_actualizados & {"cantidad_mala", "cantidad_pendiente", "estado"}:
+                campos_actualizados.add("estado")
+        else:
+            self.actualizar_estado_automatico()
 
-        self.full_clean()
+        if anterior is not None and campos_actualizados is not None:
+            efectivo = copy(self)
+            for campo in self._meta.concrete_fields:
+                if campo.name not in campos_actualizados and campo.attname not in campos_actualizados:
+                    setattr(efectivo, campo.attname, getattr(anterior, campo.attname))
+            efectivo.full_clean()
+            for campo in self._meta.concrete_fields:
+                if campo.name in campos_actualizados or campo.attname in campos_actualizados:
+                    setattr(self, campo.attname, getattr(efectivo, campo.attname))
+        else:
+            self.full_clean()
 
         if anterior:
 

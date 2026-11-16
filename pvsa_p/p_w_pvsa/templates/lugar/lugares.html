@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load pvsa_roles %}
 
 {% block title %}Lugares · PVSA{% endblock %}
 
@@ -33,10 +34,10 @@
         {% endif %}
       </button>
 
-      <a href="{% url 'crear_lugar' %}" class="btn pvsa-btn">
+      {% if user|es_administrador_pvsa %}<a href="{% url 'crear_lugar' %}" class="btn pvsa-btn">
         <i class="bi bi-plus-circle me-1"></i>
         Crear lugar
-      </a>
+      </a>{% endif %}
     </div>
   </div>
 
@@ -186,14 +187,14 @@
                   Ver lugar
                 </a>
 
-                <a
+                {% if user|es_administrador_pvsa %}<a
                   href="{% url 'editar_lugar' lugar_id=lugar.id %}"
                   class="btn btn-outline-secondary"
                   title="Editar lugar"
                   aria-label="Editar lugar"
                 >
                   <i class="bi bi-pencil"></i>
-                </a>
+                </a>{% endif %}
               </div>
 
             </div>
@@ -238,10 +239,10 @@
             </a>
           {% endif %}
 
-          <a href="{% url 'crear_lugar' %}" class="btn pvsa-btn">
+          {% if user|es_administrador_pvsa %}<a href="{% url 'crear_lugar' %}" class="btn pvsa-btn">
             <i class="bi bi-plus-circle me-1"></i>
             Crear lugar
-          </a>
+          </a>{% endif %}
         </div>
       </div>
     </div>

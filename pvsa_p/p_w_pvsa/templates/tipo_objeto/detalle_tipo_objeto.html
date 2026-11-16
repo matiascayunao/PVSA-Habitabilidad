@@ -34,13 +34,13 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-      <a
+      {% if user|es_administrador_pvsa %}<a
         href="{% url 'editar_tipo_objeto' tipo_objeto_id=tipo.id %}"
         class="btn btn-outline-primary"
       >
         <i class="bi bi-pencil me-1"></i>
         Editar
-      </a>
+      </a>{% endif %}
 
       {% if user|es_administrador_pvsa %}
       <a

@@ -1,3 +1,4 @@
+from ..servicios.identificadores import entero_identificador
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -30,19 +31,19 @@ def lista_historicos(request):
     ).all()
     if lugar_id:
         try:
-            qs = qs.filter(objeto_del_lugar__lugar_id=int(lugar_id))
+            qs = qs.filter(objeto_del_lugar__lugar_id=entero_identificador(lugar_id))
         except ValueError:
             lugar_id = ""
 
     if objeto_id:
         try:
-            qs = qs.filter(variante_anterior__objeto_id=int(objeto_id))
+            qs = qs.filter(variante_anterior__objeto_id=entero_identificador(objeto_id))
         except ValueError:
             objeto_id = ""
 
     if tipo_id:
         try:
-            qs = qs.filter(variante_anterior__variante_id=int(tipo_id))
+            qs = qs.filter(variante_anterior__variante_id=entero_identificador(tipo_id))
         except ValueError:
             tipo_id = ""
 

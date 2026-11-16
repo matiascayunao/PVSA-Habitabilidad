@@ -502,14 +502,14 @@ def import_from_rows(rows):
         return (value or '').strip().casefold()
 
     def normalizar_marca(value):
-        texto = (value or '').strip()
-        if texto.casefold() == 'sin marca':
+        texto = ' '.join((value or '').split())
+        if clave_normalizada(texto) == 'sin marca':
             return ''
         return texto
 
     def normalizar_material(value):
-        texto = (value or '').strip()
-        if texto.casefold() == 'sin material':
+        texto = ' '.join((value or '').split())
+        if clave_normalizada(texto) == 'sin material':
             return ''
         return texto
     if not isinstance(rows, list) or not rows:
@@ -529,6 +529,39 @@ def import_from_rows(rows):
     cache_objeto = {}
     cache_variante = {}
     with transaction.atomic():
+        variantes_por_objeto = {}
+        destinos = {}
+        for indice, fila in enumerate(filas_validadas, start=1):
+            objeto_key = key(fila['objeto'])
+            if objeto_key not in variantes_por_objeto:
+                existente = Objeto.objects.filter(nombre_del_objeto__iexact=fila['objeto']).first()
+                variantes_por_objeto[objeto_key] = list(TipoObjeto.objects.filter(objeto=existente)) if existente else []
+            variantes = variantes_por_objeto[objeto_key]
+            atributos = (clave_normalizada(fila['marca']), clave_normalizada(fila['material']))
+            equivalentes = (
+                clave_normalizada(normalizar_marca(fila['marca'])),
+                clave_normalizada(normalizar_material(fila['material'])),
+            )
+            candidatas = [variante for variante in variantes if (
+                clave_normalizada(variante.marca), clave_normalizada(variante.material)
+            ) == atributos]
+            if not candidatas:
+                candidatas = [variante for variante in variantes if (
+                    clave_normalizada(normalizar_marca(variante.marca)),
+                    clave_normalizada(normalizar_material(variante.material)),
+                ) == equivalentes]
+            if len(candidatas) > 1:
+                raise ValueError(f'Fila {indice}: variante ambigua de "{fila["objeto"]}". Indica su marca y material exactos.')
+            fila['_variante'] = candidatas[0] if candidatas else None
+            destino = (
+                key(fila['sector']), key(fila['ubicacion']), _piso_to_int(fila['piso']),
+                clave_normalizada(fila['lugar']), objeto_key,
+                ('existente', candidatas[0].pk) if candidatas else ('nueva', *equivalentes),
+            )
+            if destino in destinos and destinos[destino] != atributos:
+                raise ValueError(f'Fila {indice}: varias representaciones apuntan al mismo inventario. La importación es ambigua.')
+            destinos[destino] = atributos
+
         for r in filas_validadas:
             ubicacion = r['ubicacion']
             sector = r['sector']
@@ -620,18 +653,12 @@ def import_from_rows(rows):
             marca = normalizar_marca(marca_excel)
             material = normalizar_material(material_excel)
             variante_key = (objeto_obj.id, clave_normalizada(marca), clave_normalizada(material))
-            if variante_key in cache_variante:
+            if r['_variante'] is not None:
+                tipo_obj = r['_variante']
+            elif variante_key in cache_variante:
                 tipo_obj = cache_variante[variante_key]
             else:
-                tipo_obj = None
-                for existente in TipoObjeto.objects.filter(objeto=objeto_obj):
-                    marca_existente = normalizar_marca(existente.marca)
-                    material_existente = normalizar_material(existente.material)
-                    if clave_normalizada(marca_existente) == clave_normalizada(marca) and clave_normalizada(material_existente) == clave_normalizada(material):
-                        tipo_obj = existente
-                        break
-                if not tipo_obj:
-                    tipo_obj = TipoObjeto.objects.create(objeto=objeto_obj, marca=marca or None, material=material or None)
+                tipo_obj = TipoObjeto.objects.create(objeto=objeto_obj, marca=marca or None, material=material or None)
                 cache_variante[variante_key] = tipo_obj
             obj_lugar_existente = ObjetoLugar.objects.filter(lugar=lugar_obj, tipo_de_objeto=tipo_obj).order_by('id').first()
             if obj_lugar_existente:

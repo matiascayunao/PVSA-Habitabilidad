@@ -58,11 +58,11 @@
 
     <div class="d-flex flex-wrap gap-2">
 
-      <a href="{% url 'editar_lugar' lugar_id=lugar.id %}" class="btn btn-outline-primary">
+      {% if user|es_administrador_pvsa %}<a href="{% url 'editar_lugar' lugar_id=lugar.id %}" class="btn btn-outline-primary">
 
         <i class="bi bi-pencil me-1"></i>Editar
 
-      </a>
+      </a>{% endif %}
 
       {% if puede_admin %}
 
@@ -605,11 +605,11 @@
 
           </span>
 
-          <a href="{% url 'crear_objeto_lugar' lugar_id=lugar.id %}" class="btn pvsa-btn btn-sm">
+          {% if user|es_administrador_pvsa %}<a href="{% url 'crear_objeto_lugar' lugar_id=lugar.id %}" class="btn pvsa-btn btn-sm">
 
             <i class="bi bi-plus-circle me-1"></i>Agregar objeto
 
-          </a>
+          </a>{% endif %}
 
           <a href="{% url 'lista_objetos_lugar' %}?lugar={{ lugar.id }}" class="btn btn-outline-secondary btn-sm">
 
@@ -819,7 +819,7 @@
 
                       </a>
 
-                      <a
+                      {% if user|es_administrador_pvsa %}<a
 
                         href="{% url 'editar_objeto_lugar' objeto_lugar_id=o.id %}"
 
@@ -831,7 +831,7 @@
 
                         <span class="d-none d-xl-inline"> Editar</span>
 
-                      </a>
+                      </a>{% endif %}
 
                       {% if puede_admin %}
 
@@ -1061,7 +1061,7 @@
 
                 <div class="{% if puede_admin %}col-4{% else %}col-6{% endif %}">
 
-                  <a
+                  {% if user|es_administrador_pvsa %}<a
 
                     href="{% url 'editar_objeto_lugar' objeto_lugar_id=o.id %}"
 
@@ -1071,7 +1071,7 @@
 
                     <i class="bi bi-pencil me-1"></i>Editar
 
-                  </a>
+                  </a>{% endif %}
 
                 </div>
 
@@ -1133,11 +1133,11 @@
 
             </div>
 
-            <a href="{% url 'crear_objeto_lugar' lugar_id=lugar.id %}" class="btn pvsa-btn btn-sm">
+            {% if user|es_administrador_pvsa %}<a href="{% url 'crear_objeto_lugar' lugar_id=lugar.id %}" class="btn pvsa-btn btn-sm">
 
               Agregar objeto
 
-            </a>
+            </a>{% endif %}
 
           </div>
 

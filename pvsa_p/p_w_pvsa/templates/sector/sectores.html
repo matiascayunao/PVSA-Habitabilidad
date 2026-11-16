@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load pvsa_roles %}
 
 {% block title %}Sectores · PVSA{% endblock %}
 
@@ -19,10 +20,10 @@
       </div>
     </div>
 
-    <a href="{% url 'crear_sector' %}" class="btn pvsa-btn">
+    {% if user|es_administrador_pvsa %}<a href="{% url 'crear_sector' %}" class="btn pvsa-btn">
       <i class="bi bi-plus-circle me-1"></i>
       Crear sector
-    </a>
+    </a>{% endif %}
   </div>
 
   {% if sectores %}
@@ -131,10 +132,10 @@
           Crea el primer sector para comenzar a organizar la estructura.
         </div>
 
-        <a href="{% url 'crear_sector' %}" class="btn pvsa-btn">
+        {% if user|es_administrador_pvsa %}<a href="{% url 'crear_sector' %}" class="btn pvsa-btn">
           <i class="bi bi-plus-circle me-1"></i>
           Crear sector
-        </a>
+        </a>{% endif %}
       </div>
     </div>
   {% endif %}

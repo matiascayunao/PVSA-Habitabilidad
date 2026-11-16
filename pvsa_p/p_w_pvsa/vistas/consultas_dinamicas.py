@@ -12,14 +12,15 @@ from ..models import Objeto
 from ..models import TipoObjeto
 from ..models import ObjetoLugar
 from ..servicios.habituales import TIPICOS_POR_TIPO_LUGAR, sugerencias_habituales
+from ..servicios.identificadores import entero_identificador
 
 
-def _id_consulta(valor):
+def _id_consulta(valor, *, permitir_cero=False):
     try:
-        numero = int(valor)
+        numero = entero_identificador(valor)
     except (TypeError, ValueError):
         return None
-    return numero if 0 < numero <= 9223372036854775807 else None
+    return numero if numero >= (0 if permitir_cero else 1) else None
 
 
 def ajax_ubicaciones_por_sector(request):
@@ -40,14 +41,16 @@ def ajax_lugares_por_piso(request):
     piso_id = (request.GET.get("piso_id") or "").strip()
     tipo_lugar_id=(request.GET.get("tipo_lugar_id")or"").strip()
     qs = Lugar.objects.all().order_by("nombre_del_lugar")
-    if piso_id.isdigit():
-        qs = qs.filter(piso_id=int(piso_id))
+    piso_numero = _id_consulta(piso_id) if piso_id.isdecimal() else None
+    tipo_lugar_numero = _id_consulta(tipo_lugar_id, permitir_cero=True) if tipo_lugar_id.isdecimal() else None
+    if piso_numero is not None:
+        qs = qs.filter(piso_id=piso_numero)
     else:
         qs=qs.none()
 
 
-    if tipo_lugar_id.isdigit():
-        qs = qs.filter(lugar_tipo_lugar_id=int(tipo_lugar_id))
+    if tipo_lugar_numero is not None:
+        qs = qs.filter(lugar_tipo_lugar_id=tipo_lugar_numero)
 
     data = [{"id":l.id, "nombre":l.nombre_del_lugar}for l in qs]
     return JsonResponse(data, safe=False)
@@ -89,7 +92,7 @@ def objetos_tipicos_por_tipo_lugar(request, tipo_lugar_pk):
 def ajax_filtros_dependientes(request):
     def to_int(value):
         try:
-            return int(value)
+            return entero_identificador(value)
         except (TypeError, ValueError):
             return None
     sector_id = to_int(request.GET.get("sector"))

@@ -1,3 +1,4 @@
+from ..servicios.identificadores import entero_identificador
 from ..servicios.estructura import guardar_sin_duplicados
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
@@ -18,7 +19,7 @@ def lista_pisos(request):
     pisos_qs = Piso.objects.select_related("ubicacion", "ubicacion__sector").all()
     if ubicacion_id:
         try:
-            pisos_qs = pisos_qs.filter(ubicacion_id=int(ubicacion_id))
+            pisos_qs = pisos_qs.filter(ubicacion_id=entero_identificador(ubicacion_id))
         except ValueError:
             ubicacion_id = ""
 
@@ -59,7 +60,7 @@ def crear_piso(request):
             ubicacion_preseleccionada = (
                 Ubicacion.objects
                 .select_related("sector")
-                .get(pk=int(ubicacion_id))
+                .get(pk=entero_identificador(ubicacion_id))
             )
             initial["ubicacion"] = ubicacion_preseleccionada
         except (ValueError, Ubicacion.DoesNotExist):

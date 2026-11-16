@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load pvsa_roles %}
 
 {% block title %}Variantes de objetos · PVSA{% endblock %}
 
@@ -19,10 +20,10 @@
       </div>
     </div>
 
-    <a href="{% url 'crear_tipo_objeto' %}" class="btn pvsa-btn">
+    {% if user|es_administrador_pvsa %}<a href="{% url 'crear_tipo_objeto' %}" class="btn pvsa-btn">
       <i class="bi bi-plus-circle me-1"></i>
       Crear variante
-    </a>
+    </a>{% endif %}
   </div>
 
   <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -218,10 +219,10 @@
             </a>
           {% endif %}
 
-          <a href="{% url 'crear_tipo_objeto' %}" class="btn pvsa-btn">
+          {% if user|es_administrador_pvsa %}<a href="{% url 'crear_tipo_objeto' %}" class="btn pvsa-btn">
             <i class="bi bi-plus-circle me-1"></i>
             Crear variante
-          </a>
+          </a>{% endif %}
         </div>
       </div>
     </div>

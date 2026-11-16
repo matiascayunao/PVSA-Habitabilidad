@@ -1,3 +1,4 @@
+from ..servicios.identificadores import entero_identificador
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, transaction
@@ -51,49 +52,49 @@ def lista_objetos_lugar(request):
 
     if sector_id:
         try:
-            qs = qs.filter(lugar__piso__ubicacion__sector_id=int(sector_id))
+            qs = qs.filter(lugar__piso__ubicacion__sector_id=entero_identificador(sector_id))
         except ValueError:
             sector_id = ""
 
     if ubicacion_id:
         try:
-            qs = qs.filter(lugar__piso__ubicacion_id=int(ubicacion_id))
+            qs = qs.filter(lugar__piso__ubicacion_id=entero_identificador(ubicacion_id))
         except ValueError:
             ubicacion_id = ""
 
     if piso_id:
         try:
-            qs = qs.filter(lugar__piso_id=int(piso_id))
+            qs = qs.filter(lugar__piso_id=entero_identificador(piso_id))
         except ValueError:
             piso_id = ""
 
     if tipo_lugar_id:
         try:
-            qs = qs.filter(lugar__lugar_tipo_lugar_id=int(tipo_lugar_id))
+            qs = qs.filter(lugar__lugar_tipo_lugar_id=entero_identificador(tipo_lugar_id))
         except ValueError:
             tipo_lugar_id = ""
 
     if lugar_id:
         try:
-            qs = qs.filter(lugar_id=int(lugar_id))
+            qs = qs.filter(lugar_id=entero_identificador(lugar_id))
         except ValueError:
             lugar_id = ""
 
     if categoria_id:
         try:
-            qs = qs.filter(tipo_de_objeto__objeto__objeto_categoria_id=int(categoria_id))
+            qs = qs.filter(tipo_de_objeto__objeto__objeto_categoria_id=entero_identificador(categoria_id))
         except ValueError:
             categoria_id = ""
 
     if objeto_id:
         try:
-            qs = qs.filter(tipo_de_objeto__objeto_id=int(objeto_id))
+            qs = qs.filter(tipo_de_objeto__objeto_id=entero_identificador(objeto_id))
         except ValueError:
             objeto_id = ""
 
     if tipo_id:
         try:
-            qs = qs.filter(tipo_de_objeto_id=int(tipo_id))
+            qs = qs.filter(tipo_de_objeto_id=entero_identificador(tipo_id))
         except ValueError:
             tipo_id = ""
 
@@ -102,7 +103,7 @@ def lista_objetos_lugar(request):
 
     if importancia_val:
         try:
-            qs = qs.filter(importancia=int(importancia_val))
+            qs = qs.filter(importancia=entero_identificador(importancia_val))
         except ValueError:
             importancia_val = ""
 

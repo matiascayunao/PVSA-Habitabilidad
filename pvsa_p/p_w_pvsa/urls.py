@@ -96,6 +96,25 @@ RUTAS_JEFE = {
     "signout",
 }
 
+RUTAS_OPERADOR_LECTURA = {
+    "home",
+    "lista_sectores", "detalle_sector",
+    "lista_ubicaciones", "detalle_ubicacion",
+    "lista_pisos", "detalle_piso",
+    "lista_lugares", "detalle_lugar",
+    "lista_objetos_lugar", "detalle_objeto_lugar",
+    "lista_tipos_lugar", "detalle_tipo_lugar",
+    "lista_categorias", "detalle_categoria",
+    "lista_objetos", "detalle_objeto",
+    "lista_tipos_objeto", "detalle_tipo_objeto",
+    "lista_historicos", "detalle_historico",
+    "resumen_general",
+    "ajax_ubicaciones_por_sector", "ajax_pisos_por_ubicacion",
+    "ajax_lugares_por_piso", "ajax_objetos_por_categoria",
+    "ajax_tipos_por_objeto", "objetos_tipicos_por_tipo_lugar",
+    "ajax_filtros_dependientes",
+}
+
 # =========================================================
 
 # VERIFICACIÓN CENTRALIZADA DE ROLES
@@ -188,7 +207,11 @@ def proteger_vista(vista, nombre_ruta):
 
         if "Operador" in grupos:
 
-            if nombre_ruta in RUTAS_ADMINISTRADOR:
+            if (
+                nombre_ruta in RUTAS_ADMINISTRADOR
+                or nombre_ruta not in RUTAS_OPERADOR_LECTURA
+                or request.method not in {"GET", "HEAD"}
+            ):
 
                 raise PermissionDenied(
 
@@ -218,7 +241,7 @@ def proteger_vista(vista, nombre_ruta):
 
 def path(route, view, kwargs=None, name=None):
 
-    vista = proteger_vista(view, name)
+    vista = proteger_vista(view, name or view.__name__)
 
     return django_path(
 

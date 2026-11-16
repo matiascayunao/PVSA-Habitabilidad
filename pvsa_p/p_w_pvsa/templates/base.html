@@ -478,13 +478,13 @@
 
               <li class="nav-item">
 
-                <a class="nav-link fw-semibold" href="{% url 'crear_estructura' %}">
+                {% if user|es_administrador_pvsa %}<a class="nav-link fw-semibold" href="{% url 'crear_estructura' %}">
 
                   <i class="bi bi-plus-square me-1"></i>
 
                   Registro completo
 
-                </a>
+                </a>{% endif %}
 
               </li>
 

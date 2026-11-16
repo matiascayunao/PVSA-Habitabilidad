@@ -743,7 +743,27 @@ class ObjetoLugarFilaForm(forms.Form):
                 "La variante seleccionada no pertenece al objeto elegido.",
             )
 
+        if (
+            not tipo_existente
+            and marca.casefold() in ("", "sin marca")
+            and material.casefold() in ("", "sin material")
+        ):
+            marca = material = ""
+            cleaned["marca"] = marca
+            cleaned["material"] = material
+
         if not tipo_existente and objeto_existente:
+            if not marca and not material:
+                variantes = list(TipoObjeto.objects.filter(objeto=objeto_existente).order_by("pk"))
+                for solo_vacios in (True, False):
+                    existente = next((variante for variante in variantes if
+                        texto(variante.marca).casefold() in (("",) if solo_vacios else ("", "sin marca"))
+                        and texto(variante.material).casefold() in (("",) if solo_vacios else ("", "sin material"))
+                    ), None)
+                    if existente is not None:
+                        cleaned["tipo_objeto_existente"] = existente
+                        return self.validar_cantidades(cleaned)
+
             marca_normalizada = marca.casefold()
             material_normalizado = material.casefold()
 

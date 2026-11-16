@@ -52,7 +52,7 @@ def crear_jefe(request):
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             usuario = form.save()
-            grupo = Group.objects.get(name=GRUPO_JEFES)
+            grupo, _ = Group.objects.get_or_create(name=GRUPO_JEFES)
             usuario.groups.add(grupo)
             for lugar in form.cleaned_data["lugares"]:
                 AsignacionLugarJefe.objects.create(

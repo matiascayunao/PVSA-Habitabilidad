@@ -1,3 +1,4 @@
+from ..servicios.identificadores import entero_identificador
 from ..servicios.estructura import guardar_sin_duplicados
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -28,14 +29,14 @@ def lista_lugares(request):
 
     if ubicacion_id:
         try:
-            u_id = int(ubicacion_id)
+            u_id = entero_identificador(ubicacion_id)
             lugares_qs = lugares_qs.filter(piso__ubicacion_id=u_id)
         except ValueError:
             ubicacion_id = ""
 
     if piso_id:
         try:
-            p_id = int(piso_id)
+            p_id = entero_identificador(piso_id)
             lugares_qs = lugares_qs.filter(piso_id=p_id)
         except ValueError:
             piso_id = ""
@@ -175,7 +176,7 @@ def crear_lugar(request):
                     "ubicacion",
                     "ubicacion__sector",
                 )
-                .get(pk=int(piso_id))
+                .get(pk=entero_identificador(piso_id))
             )
             initial["piso"] = piso_preseleccionado
         except (ValueError, Piso.DoesNotExist):

@@ -31,13 +31,13 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-      <a
+      {% if user|es_administrador_pvsa %}<a
         href="{% url 'editar_categoria' categoria_id=categoria.id %}"
         class="btn btn-outline-primary"
       >
         <i class="bi bi-pencil me-1"></i>
         Editar
-      </a>
+      </a>{% endif %}
 
       {% if user|es_administrador_pvsa %}
       <a
@@ -73,10 +73,10 @@
           </div>
         </div>
 
-        <a href="{% url 'crear_objeto' %}?categoria={{ categoria.id }}" class="btn pvsa-btn btn-sm">
+        {% if user|es_administrador_pvsa %}<a href="{% url 'crear_objeto' %}?categoria={{ categoria.id }}" class="btn pvsa-btn btn-sm">
           <i class="bi bi-plus-circle me-1"></i>
           Crear objeto
-        </a>
+        </a>{% endif %}
 
       </div>
     </div>
@@ -161,10 +161,10 @@
             Crea un objeto para comenzar a utilizar esta categoría.
           </div>
 
-          <a href="{% url 'crear_objeto' %}?categoria={{ categoria.id }}" class="btn pvsa-btn">
+          {% if user|es_administrador_pvsa %}<a href="{% url 'crear_objeto' %}?categoria={{ categoria.id }}" class="btn pvsa-btn">
             <i class="bi bi-plus-circle me-1"></i>
             Crear objeto
-          </a>
+          </a>{% endif %}
         </div>
       {% endif %}
 

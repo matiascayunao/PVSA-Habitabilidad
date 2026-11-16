@@ -1,3 +1,4 @@
+from ..servicios.identificadores import entero_identificador
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -17,7 +18,7 @@ def lista_ubicaciones(request):
 
     if sector_id:
         try:
-            ubicaciones_qs = ubicaciones_qs.filter(sector_id=int(sector_id))
+            ubicaciones_qs = ubicaciones_qs.filter(sector_id=entero_identificador(sector_id))
         except ValueError:
             sector_id = ""
 
@@ -55,7 +56,7 @@ def crear_ubicacion(request):
 
     if sector_id:
         try:
-            sector_preseleccionado = Sector.objects.get(pk=int(sector_id))
+            sector_preseleccionado = Sector.objects.get(pk=entero_identificador(sector_id))
             initial["sector"] = sector_preseleccionado
         except (ValueError, Sector.DoesNotExist):
             sector_preseleccionado = None

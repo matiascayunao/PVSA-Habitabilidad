@@ -4,19 +4,27 @@ from django.db import transaction
 from django.utils import timezone
 
 from ..models import ReporteIncidencia
+from ..private_storage import GuardadoEvidencia
 
 
 @contextmanager
 def reporte_atomico(reporte):
     foto_nueva = reporte.foto if reporte.foto and not reporte.foto._committed else None
+    storage = foto_nueva.storage if foto_nueva else None
+    guardado = GuardadoEvidencia(storage) if foto_nueva else None
+    if foto_nueva:
+        foto_nueva.storage = guardado
     try:
         with transaction.atomic():
             yield
     except Exception:
-        if foto_nueva and foto_nueva._committed and foto_nueva.name:
-            foto_nueva.storage.delete(foto_nueva.name)
+        if guardado is not None:
+            guardado.limpiar()
             foto_nueva.name = None
         raise
+    finally:
+        if foto_nueva is not None:
+            foto_nueva.storage = storage
 
 
 def guardar_reporte_publico(reporte, lugar, datos):
