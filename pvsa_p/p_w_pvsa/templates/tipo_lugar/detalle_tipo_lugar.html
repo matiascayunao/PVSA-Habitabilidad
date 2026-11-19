@@ -173,12 +173,7 @@
                       </div>
                       <div class="small text-muted">
                         {{ relacion.tipo_objeto.objeto.objeto_categoria.nombre_de_categoria }}
-                        {% if relacion.tipo_objeto.marca %}
-                          · {{ relacion.tipo_objeto.marca }}
-                        {% endif %}
-                        {% if relacion.tipo_objeto.material %}
-                          · {{ relacion.tipo_objeto.material }}
-                        {% endif %}
+                        · {{ relacion.tipo_objeto.etiqueta_atributos }}
                       </div>
                     </div>
                   </div>
@@ -275,9 +270,7 @@
                       {{ t.objeto.objeto_categoria.nombre_de_categoria }}
                     </span>
                     <span class="d-block small text-muted">
-                      {{ t.marca|default:"Sin marca" }}
-                      ·
-                      {{ t.material|default:"Sin material" }}
+                      {{ t.etiqueta_atributos }}
                     </span>
                   </span>
                 </label>

@@ -4,7 +4,7 @@
 {% block title %}Lugares · PVSA{% endblock %}
 
 {% block content %}
-<div class="py-2 py-lg-3">
+<div class="py-2 py-lg-3 lugar-lugares">
 
   <div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
     <div>
@@ -357,6 +357,13 @@
 </div>
 
 <style>
+  /* Flex/grid children must shrink before long QA names wrap. */
+  .lugar-lugares { overflow-wrap: anywhere; }
+  .lugar-lugares .d-flex > div,
+  .lugar-lugares .row > div,
+  .lugar-lugares .route-row > div { min-width: 0; }
+  .lugar-lugares .badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
   .pvsa-section-badge {
     color: var(--pvsa-accent);
     background: rgba(6, 182, 185, .08);

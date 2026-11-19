@@ -154,23 +154,7 @@
                       </h2>
 
                       <div class="variant-data">
-                        <span>
-                          <i class="bi bi-bookmark me-1"></i>
-                          {% if tipo.marca %}
-                            {{ tipo.marca }}
-                          {% else %}
-                            Sin marca
-                          {% endif %}
-                        </span>
-
-                        <span>
-                          <i class="bi bi-layers me-1"></i>
-                          {% if tipo.material %}
-                            {{ tipo.material }}
-                          {% else %}
-                            Sin material
-                          {% endif %}
-                        </span>
+                        <span class="text-break">{{ tipo.etiqueta_atributos }}</span>
                       </div>
                     </div>
                   </div>

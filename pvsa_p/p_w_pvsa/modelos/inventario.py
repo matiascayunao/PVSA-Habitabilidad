@@ -139,43 +139,10 @@ class ObjetoLugar(models.Model):
 
             lugar_txt = "Sin lugar asignado"
 
-        if self.tipo_de_objeto and self.tipo_de_objeto.objeto:
-
-            objeto_txt = (
-
-                self.tipo_de_objeto.objeto.nombre_del_objeto
-
-            )
-
-            marca_txt = (
-
-                self.tipo_de_objeto.marca
-
-                or "Sin marca"
-
-            )
-
-            material_txt = (
-
-                self.tipo_de_objeto.material
-
-                or "Sin material"
-
-            )
-
-        else:
-
-            objeto_txt = "Objeto no especificado"
-
-            marca_txt = "Sin marca"
-
-            material_txt = "Sin material"
+        variante_txt = str(self.tipo_de_objeto) if self.tipo_de_objeto else "Sin variante asignada"
 
         return (
-
-            f"{objeto_txt} - "
-
-            f"{marca_txt} {material_txt} "
+            f"{variante_txt} "
 
             f"en {lugar_txt} "
 

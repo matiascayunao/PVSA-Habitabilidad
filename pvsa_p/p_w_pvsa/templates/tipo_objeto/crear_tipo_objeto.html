@@ -209,17 +209,12 @@ document.addEventListener("DOMContentLoaded", function () {
       alertBox.classList.toggle("d-none", !duplicada);
 
       if (duplicada) {
-        const marcaTexto = exacta.marca || "Sin marca";
-        const materialTexto = exacta.material || "Sin material";
-
         alertBox.innerHTML =
           '<i class="bi bi-x-circle-fill me-1"></i>' +
           'Esta variante ya existe: <strong>' +
           pvsaEscapeHtml(exacta.objeto__nombre_del_objeto) +
           '</strong> · ' +
-          pvsaEscapeHtml(marcaTexto) +
-          ' · ' +
-          pvsaEscapeHtml(materialTexto) +
+          pvsaEscapeHtml(exacta.etiqueta) +
           '.';
       } else {
         alertBox.innerHTML = "";

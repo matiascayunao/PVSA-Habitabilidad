@@ -181,6 +181,7 @@ if PVSA_ENV == "production":
     )):
         raise ImproperlyConfigured("Datos, estáticos y código deben ocupar directorios separados, sin contenerse entre sí.")
     PRIVATE_EVIDENCE_ROOT = DATA_ROOT / "pvsa_evidencias_privadas"
+    DATABASES["default"]["NAME"] = DATA_ROOT / "db.sqlite3"
     MEDIA_ROOT = DATA_ROOT / "media"
     MEDIA_URL = "/media/"
     STATIC_URL = "/static/"

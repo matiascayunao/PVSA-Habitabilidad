@@ -1,4 +1,5 @@
 from ..servicios.estructura import guardar_sin_duplicados
+from ..servicios.identificadores import entero_identificador
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -269,7 +270,7 @@ def lista_objetos(request):
     objetos_qs = Objeto.objects.select_related("objeto_categoria").all()
     if categoria_id:
         try:
-            objetos_qs = objetos_qs.filter(objeto_categoria_id=int(categoria_id))
+            objetos_qs = objetos_qs.filter(objeto_categoria_id=entero_identificador(categoria_id))
         except ValueError:
             categoria_id = ""
 
@@ -311,7 +312,7 @@ def crear_objeto(request):
     if categoria_id:
         try:
             categoria_preseleccionada = CategoriaObjeto.objects.get(
-                pk=int(categoria_id)
+                pk=entero_identificador(categoria_id)
             )
             initial["objeto_categoria"] = categoria_preseleccionada
         except (ValueError, CategoriaObjeto.DoesNotExist):
@@ -404,13 +405,13 @@ def lista_tipos_objeto(request):
     ).all()
     if categoria_id:
         try:
-            c_id = int(categoria_id)
+            c_id = entero_identificador(categoria_id)
             tipos_qs = tipos_qs.filter(objeto__objeto_categoria_id=c_id)
         except ValueError:
             categoria_id = ""
     if objeto_id:
         try:
-            o_id = int(objeto_id)
+            o_id = entero_identificador(objeto_id)
             tipos_qs = tipos_qs.filter(objeto_id=o_id)
         except ValueError:
             objeto_id = ""
@@ -445,7 +446,7 @@ def detalle_tipo_objeto(request, tipo_objeto_id):
     tipo = get_object_or_404(TipoObjeto, pk=tipo_objeto_id)
     usados = (
         ObjetoLugar.objects.filter(tipo_de_objeto=tipo)
-        .select_related("lugar")
+        .select_related("lugar__piso__ubicacion__sector")
         .order_by("-fecha")
     )
     return render(
@@ -467,7 +468,7 @@ def crear_tipo_objeto(request):
             objeto_preseleccionado = (
                 Objeto.objects
                 .select_related("objeto_categoria")
-                .get(pk=int(objeto_id))
+                .get(pk=entero_identificador(objeto_id))
             )
             initial["objeto"] = objeto_preseleccionado
         except (ValueError, Objeto.DoesNotExist):
@@ -481,21 +482,18 @@ def crear_tipo_objeto(request):
     contexto = {
         "form": form,
         "objeto_preseleccionado": objeto_preseleccionado,
-        "variantes_existentes": list(
-            TipoObjeto.objects
-            .select_related("objeto")
-            .order_by(
-                "objeto__nombre_del_objeto",
-                "marca",
-                "material",
+        "variantes_existentes": [
+            {
+                "objeto_id": tipo.objeto_id,
+                "objeto__nombre_del_objeto": tipo.objeto.nombre_del_objeto,
+                "marca": tipo.marca,
+                "material": tipo.material,
+                "etiqueta": tipo.etiqueta_atributos,
+            }
+            for tipo in TipoObjeto.objects.select_related("objeto").order_by(
+                "objeto__nombre_del_objeto", "marca", "material",
             )
-            .values(
-                "objeto_id",
-                "objeto__nombre_del_objeto",
-                "marca",
-                "material",
-            )
-        ),
+        ],
     }
 
     if request.method == "POST" and form.is_valid():

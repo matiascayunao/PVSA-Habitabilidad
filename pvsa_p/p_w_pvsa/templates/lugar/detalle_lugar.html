@@ -8,7 +8,7 @@
 
 {% with puede_admin=user|es_administrador_pvsa %}
 
-<div class="py-2 py-lg-3">
+<div class="py-2 py-lg-3 lugar-detalle_lugar">
 
   <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-4">
 
@@ -701,11 +701,7 @@
 
                     <div class="small text-muted">
 
-                      {{ o.tipo_de_objeto.marca|default:"Sin marca" }}
-
-                      ·
-
-                      {{ o.tipo_de_objeto.material|default:"Sin material" }}
+                      {{ o.tipo_de_objeto.etiqueta_atributos }}
 
                     </div>
 
@@ -931,11 +927,7 @@
 
               <div class="small text-muted mb-3">
 
-                {{ o.tipo_de_objeto.marca|default:"Sin marca" }}
-
-                ·
-
-                {{ o.tipo_de_objeto.material|default:"Sin material" }}
+                {{ o.tipo_de_objeto.etiqueta_atributos }}
 
               </div>
 
@@ -1230,6 +1222,13 @@
 </div>
 
 <style>
+  /* Flex/grid children must shrink before long QA names wrap. */
+  .lugar-detalle_lugar { overflow-wrap: anywhere; }
+  .lugar-detalle_lugar .d-flex > div,
+  .lugar-detalle_lugar .row > div,
+  .lugar-detalle_lugar .d-grid > div { min-width: 0; }
+  .lugar-detalle_lugar .badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
 
   .route-line span{
 

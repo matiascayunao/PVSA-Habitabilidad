@@ -108,27 +108,22 @@ class TipoObjeto(models.Model):
         ).exclude(pk=self.pk).exists():
             raise ValidationError("Esta variante ya existe para el objeto seleccionado.")
 
+    @property
+    def etiqueta_atributos(self):
+        marca = (self.marca or "").strip()
+        material = (self.material or "").strip()
+        detalles = f"{marca or 'Sin marca'} · {material or 'Sin material'}"
+        if not marca and not material:
+            estado = "Atributos vacíos"
+        elif not marca or not material:
+            estado = "Atributos parcialmente vacíos"
+        else:
+            estado = "Texto registrado"
+        identidad = f" (ID {self.pk})" if self.pk is not None else ""
+        return f"{detalles} — {estado}{identidad}"
+
     def __str__(self):
-
-        marca_txt = (self.marca or "").strip()
-
-        material_txt = (self.material or "").strip()
-
-        detalles = " ".join(
-
-            texto
-
-            for texto in [marca_txt, material_txt]
-
-            if texto
-
-        )
-
-        if detalles:
-
-            return f"{self.objeto.nombre_del_objeto} - {detalles}"
-
-        return self.objeto.nombre_del_objeto
+        return f"{self.objeto.nombre_del_objeto} - {self.etiqueta_atributos}"
 
 
 class TipoLugarObjetoTipico(models.Model):

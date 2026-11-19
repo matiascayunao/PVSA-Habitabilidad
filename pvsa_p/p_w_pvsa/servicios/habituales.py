@@ -106,12 +106,9 @@ def sugerencias_habituales(tipo_lugar):
             variante = relacion.tipo_objeto
             objeto = variante.objeto
             categoria = objeto.objeto_categoria
-            marca = (variante.marca or "").strip()
-            material = (variante.material or "").strip()
-            detalles = f" ({marca} {material})".strip() if marca or material else ""
             resultado.append({"categoria_id": categoria.pk, "objeto_id": objeto.pk,
                 "tipo_objeto_id": variante.pk,
-                "label": f"{categoria.nombre_de_categoria} - {objeto.nombre_del_objeto}{detalles}"})
+                "label": f"{categoria.nombre_de_categoria} - {variante}"})
         return resultado
     catalogo = TIPICOS_POR_TIPO_LUGAR.get(tipo_lugar.tipo_de_lugar, {})
     if not catalogo:
@@ -136,7 +133,7 @@ def sugerencias_habituales(tipo_lugar):
             categoria_nombre = categoria.nombre_de_categoria if categoria else nombre_categoria
             resultado.append({"categoria_id": categoria.pk if categoria else None,
                 "objeto_id": objeto.pk if objeto else None, "tipo_objeto_id": variante.pk if variante else None,
-                "label": f"{categoria_nombre} - {nombre}",
+                "label": f"{categoria_nombre} - {variante if variante else nombre}",
                 "referencia": f"habitual:{tipo_lugar.pk}:{clave}",
                 "categoria_nombre": categoria_nombre, "objeto_nombre": nombre,
                 "virtual": variante is None})

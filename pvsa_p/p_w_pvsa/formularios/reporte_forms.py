@@ -1,6 +1,8 @@
 from pathlib import Path
+from io import BytesIO
 
 from django import forms
+from PIL import Image
 
 from ..models import ReporteIncidencia
 
@@ -16,6 +18,26 @@ ELEMENTOS = [
     ("Limpieza / higiene", "Limpieza / higiene"),
     ("otro", "Otro elemento"),
 ]
+
+
+class FotoReporteField(forms.ImageField):
+
+    def to_python(self, data):
+        foto = forms.FileField.to_python(self, data)
+        if foto is None:
+            return None
+        if foto.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("La fotografía no puede superar 5 MB.")
+        try:
+            with Image.open(BytesIO(foto.read()), formats=("JPEG", "PNG", "WEBP")) as imagen:
+                pixeles = imagen.width * imagen.height
+        except Exception:
+            raise forms.ValidationError(self.error_messages["invalid_image"], code="invalid_image")
+        finally:
+            foto.seek(0)
+        if pixeles > 20_000_000:
+            raise forms.ValidationError("La fotografía tiene una resolución demasiado alta.")
+        return super().to_python(foto)
 
 
 class ReportePublicoForm(forms.ModelForm):
@@ -40,6 +62,7 @@ class ReportePublicoForm(forms.ModelForm):
 
     class Meta:
         model = ReporteIncidencia
+        field_classes = {"foto": FotoReporteField}
 
         fields = (
             "tipo_problema",

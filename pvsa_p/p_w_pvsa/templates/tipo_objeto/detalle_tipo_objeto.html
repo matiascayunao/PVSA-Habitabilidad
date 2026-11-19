@@ -86,25 +86,8 @@
             </div>
 
             <div class="info-box">
-              <div class="small text-muted">Marca</div>
-              <div class="fw-bold">
-                {% if tipo.marca %}
-                  {{ tipo.marca }}
-                {% else %}
-                  Sin marca
-                {% endif %}
-              </div>
-            </div>
-
-            <div class="info-box">
-              <div class="small text-muted">Material</div>
-              <div class="fw-bold">
-                {% if tipo.material %}
-                  {{ tipo.material }}
-                {% else %}
-                  Sin material
-                {% endif %}
-              </div>
+              <div class="small text-muted">Variante</div>
+              <div class="fw-bold text-break">{{ tipo.etiqueta_atributos }}</div>
             </div>
 
           </div>

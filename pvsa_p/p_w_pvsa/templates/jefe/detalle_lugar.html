@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ lugar.nombre_del_lugar }} · PVSA{% endblock %}
 {% block content %}
-<div class="py-3">
+<div class="py-3 jefe-lugar-detalle">
   <a class="btn btn-outline-secondary btn-sm mb-3" href="{% url 'panel_jefe' %}">
     <i class="bi bi-arrow-left me-1"></i>Volver a mis lugares
   </a>
@@ -49,6 +49,7 @@
               </a>
             {% endif %}
           </div>
+          <div class="small text-muted text-break">{{ obj.tipo_de_objeto.etiqueta_atributos|default:"Sin variante asignada" }}</div>
           <div class="small text-muted">Total: {{ obj.cantidad }} · Con falla: {{ obj.cantidad_mala }} · Por revisar: {{ obj.cantidad_pendiente }}</div>
           {% if obj.detalle %}<div class="small mt-1">{{ obj.detalle }}</div>{% endif %}
         </div>
@@ -58,4 +59,8 @@
     </div>
   </div>
 </div>
+<style>
+  .jefe-lugar-detalle { overflow-wrap: anywhere; }
+  .jefe-lugar-detalle .d-flex > div { min-width: 0; }
+</style>
 {% endblock %}

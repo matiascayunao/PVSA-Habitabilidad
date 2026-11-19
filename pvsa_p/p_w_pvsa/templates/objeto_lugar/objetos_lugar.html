@@ -157,6 +157,10 @@
                             {% endif %}
                           </a>
 
+                          <div class="small text-muted mt-1 text-break">
+                            {{ o.tipo_de_objeto.etiqueta_atributos|default:"Sin variante asignada" }}
+                          </div>
+
                           <div class="small text-muted mt-1">
                             {{ o.cantidad }} unidad{% if o.cantidad != 1 %}es{% endif %}
                           </div>
@@ -275,6 +279,10 @@
                     {% else %}
                       Objeto no especificado
                     {% endif %}
+                  </div>
+
+                  <div class="small text-muted mt-1 text-break">
+                    {{ o.tipo_de_objeto.etiqueta_atributos|default:"Sin variante asignada" }}
                   </div>
 
                   <div class="small text-muted mt-1">
@@ -515,10 +523,7 @@
                     <option value="">Todos los tipos</option>
                     {% for t in tipos %}
                       <option value="{{ t.id }}" {% if tipo_actual == t.id|stringformat:'s' %}selected{% endif %}>
-                        {{ t.objeto.nombre_del_objeto }} ·
-                        {{ t.marca|default:"Sin marca" }}
-                        ·
-                        {{ t.material|default:"Sin material" }}
+                        {{ t }}
                       </option>
                     {% endfor %}
                   </select>

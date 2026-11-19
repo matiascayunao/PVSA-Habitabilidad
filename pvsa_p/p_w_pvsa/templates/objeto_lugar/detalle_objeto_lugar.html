@@ -270,25 +270,10 @@
             </div>
           </div>
 
-          <div class="col-6 col-md-4">
-            <div class="detail-label">Marca</div>
-            <div class="fw-semibold">
-              {% if objeto_lugar.tipo_de_objeto and objeto_lugar.tipo_de_objeto.marca %}
-                {{ objeto_lugar.tipo_de_objeto.marca }}
-              {% else %}
-                Sin marca
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="col-6 col-md-4">
-            <div class="detail-label">Material</div>
-            <div class="fw-semibold">
-              {% if objeto_lugar.tipo_de_objeto and objeto_lugar.tipo_de_objeto.material %}
-                {{ objeto_lugar.tipo_de_objeto.material }}
-              {% else %}
-                Sin material
-              {% endif %}
+          <div class="col-12">
+            <div class="detail-label">Variante</div>
+            <div class="fw-semibold text-break">
+              {{ objeto_lugar.tipo_de_objeto.etiqueta_atributos|default:"Sin variante asignada" }}
             </div>
           </div>
 

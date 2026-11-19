@@ -89,6 +89,7 @@
                   data-id="{{ tipo.id }}"
                   data-objeto="{{ tipo.objeto.nombre_del_objeto|escape }}"
                   data-categoria="{{ tipo.objeto.objeto_categoria.nombre_de_categoria|escape }}"
+                  data-variante="{{ tipo.etiqueta_atributos|escape }}"
                   data-marca="{{ tipo.marca|default:''|escape }}"
                   data-material="{{ tipo.material|default:''|escape }}"
                   data-search="{{ tipo.objeto.nombre_del_objeto|lower|escape }} {{ tipo.objeto.objeto_categoria.nombre_de_categoria|lower|escape }} {{ tipo.marca|default:''|lower|escape }} {{ tipo.material|default:''|lower|escape }}"
@@ -105,17 +106,7 @@
                     </div>
 
                     <div class="small catalog-meta">
-                      {% if tipo.marca %}
-                        {{ tipo.marca }}
-                      {% else %}
-                        Sin marca
-                      {% endif %}
-                      <span>·</span>
-                      {% if tipo.material %}
-                        {{ tipo.material }}
-                      {% else %}
-                        Sin material
-                      {% endif %}
+                      {{ tipo.etiqueta_atributos }}
                     </div>
                   </div>
 
@@ -932,12 +923,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function labelForButton(button) {
-    const brand = button.dataset.marca || "Sin marca";
-    const material = button.dataset.material || "Sin material";
+    const variant = button.dataset.variante || "";
 
     return {
       name: button.dataset.objeto || "Objeto",
-      meta: (button.dataset.categoria || "Sin categoría") + " · " + brand + " · " + material
+      meta: (button.dataset.categoria || "Sin categoría") + " · " + variant
     };
   }
 

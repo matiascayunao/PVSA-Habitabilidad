@@ -495,7 +495,7 @@
                   <select id="id_filtro_tipo_objeto" name="tipo_objeto" class="form-select">
                     <option value="">Todas las variantes</option>
                     {% for t in tipos_objeto %}
-                      <option value="{{ t.id }}" {% if tipo_objeto_actual == t.id|stringformat:'s' %}selected{% endif %}>{{ t.objeto.nombre_del_objeto }} - {{ t.marca }} {{ t.material }}</option>
+                      <option value="{{ t.id }}" {% if tipo_objeto_actual == t.id|stringformat:'s' %}selected{% endif %}>{{ t }}</option>
                     {% endfor %}
                   </select>
                 </div>

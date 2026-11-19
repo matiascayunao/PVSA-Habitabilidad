@@ -71,7 +71,7 @@ def ajax_tipos_por_objeto(request):
     data = [
         {
             "id": t.id,
-            "nombre": f"{t.marca} {t.material}",
+            "nombre": t.etiqueta_atributos,
         }
         for t in qs
     ]
@@ -245,7 +245,7 @@ def ajax_filtros_dependientes(request):
         "tipos_objeto": [
             {
                 "id": t.id,
-                "nombre": f"{t.objeto.nombre_del_objeto} - {t.marca or 'Sin marca'} / {t.material or 'Sin material'}",
+                "nombre": str(t),
             }
             for t in tipos_objeto
         ],

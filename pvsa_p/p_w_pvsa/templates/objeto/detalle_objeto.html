@@ -111,22 +111,9 @@
                       </div>
 
                       <div class="min-w-0">
-                        <div class="fw-bold text-break">
-                          {% if tipo.marca %}
-                            {{ tipo.marca }}
-                          {% else %}
-                            Sin marca
-                          {% endif %}
-                        </div>
-
-                        <div class="small text-muted mt-1">
-                          {% if tipo.material %}
-                            {{ tipo.material }}
-                          {% else %}
-                            Sin material especificado
-                          {% endif %}
-                        </div>
+                        <div class="fw-bold text-break">{{ tipo.etiqueta_atributos }}</div>
                       </div>
+
                     </div>
 
                     <div class="open-icon">
