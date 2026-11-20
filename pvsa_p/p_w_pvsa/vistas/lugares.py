@@ -22,6 +22,7 @@ def lista_lugares(request):
     ubicacion_id = request.GET.get("ubicacion", "").strip()
     piso_id = request.GET.get("piso", "").strip()
     lugares_qs = Lugar.objects.select_related(
+        "lugar_tipo_lugar",
         "piso",
         "piso__ubicacion",
         "piso__ubicacion__sector",

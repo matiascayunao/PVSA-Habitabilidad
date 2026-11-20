@@ -52,7 +52,12 @@ def guardar_reporte_interno(reporte, lugar, usuario, datos):
         reporte.full_clean()
         reporte.save()
 
+@transaction.atomic
 def actualizar_estado_incidencia(reporte, estado_nuevo, observacion, usuario):
+    reporte.refresh_from_db(
+        from_queryset=ReporteIncidencia.objects.select_for_update(),
+        fields=["estado", "atendido_por", "fecha_inicio_atencion", "fecha_resolucion"],
+    )
     estado_anterior = reporte.estado
     ahora = timezone.now()
     reporte.estado = estado_nuevo

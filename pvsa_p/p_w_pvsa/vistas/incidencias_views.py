@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
+from django.db import OperationalError, connection
 from django.http import (
     FileResponse,
     Http404,
@@ -182,7 +183,24 @@ def detalle_incidencia(request, incidencia_id):
                 "La observación no puede superar 3000 caracteres.",
             )
         else:
-            actualizar_estado_incidencia(reporte, estado_nuevo, observacion, request.user)
+            try:
+                actualizar_estado_incidencia(reporte, estado_nuevo, observacion, request.user)
+            except OperationalError as error:
+                codigo = getattr(error.__cause__, "sqlite_errorcode", 0)
+                if connection.vendor != "sqlite" or codigo & 0xFF not in (5, 6):
+                    raise
+                reporte.refresh_from_db()
+                messages.error(
+                    request,
+                    "La incidencia está siendo actualizada por otra operación. "
+                    "No se guardaron tus cambios. Revisa el estado actual y vuelve a intentarlo.",
+                )
+                return render(
+                    request,
+                    "incidencias/detalle_incidencia.html",
+                    {"reporte": reporte, "estados": ReporteIncidencia.Estado.choices},
+                    status=409,
+                )
 
             messages.success(
                 request,

@@ -3,7 +3,7 @@
 {% block title %}Agregar objeto · PVSA{% endblock %}
 
 {% block content %}
-<div class="py-2 py-lg-3 crear-objeto-page">
+<div class="py-2 py-lg-3 crear-objeto-page pvsa-wrap">
   <div class="row justify-content-center">
     <div class="col-12 col-xl-9">
 
@@ -661,7 +661,7 @@
   .catalog-result {
     width: 100%;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: .85rem;
     border: 1px solid #e5e7eb;

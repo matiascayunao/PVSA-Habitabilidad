@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ titulo }} · PVSA{% endblock %}
 {% block content %}
-<div class="py-2 py-lg-3" style="max-width:950px;margin:auto;">
+<div class="py-2 py-lg-3 pvsa-wrap" style="max-width:950px;margin:auto;">
   <div class="mb-4">
     <a href="{% url 'superadmin_lista_jefes' %}" class="btn btn-outline-secondary btn-sm mb-3">
       <i class="bi bi-arrow-left me-1"></i>Volver a jefes
@@ -81,7 +81,7 @@
   </form>
 </div>
 <style>
-.lugares-checkboxes > div {display:grid;gap:.6rem;}
+.lugares-checkboxes > div {display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem;}
 .lugares-checkboxes label {display:flex;align-items:flex-start;gap:.65rem;cursor:pointer;line-height:1.4;}
 .lugares-checkboxes input[type='checkbox'] {width:18px;height:18px;min-width:18px;margin-top:2px;cursor:pointer;}
 .lugares-checkboxes > div > div {padding:.5rem .7rem;background:white;border:1px solid #e4e7ea;border-radius:.6rem;}

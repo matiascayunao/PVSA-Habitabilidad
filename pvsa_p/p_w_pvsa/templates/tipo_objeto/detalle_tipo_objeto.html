@@ -4,7 +4,7 @@
 {% block title %}{{ tipo.objeto.nombre_del_objeto }} · Variante · PVSA{% endblock %}
 
 {% block content %}
-<div class="py-2 py-lg-3 detalle-variante-page">
+<div class="py-2 py-lg-3 detalle-variante-page pvsa-wrap">
 
   <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3 mb-4">
     <div class="min-w-0">
@@ -176,6 +176,6 @@
 .usage-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem;border:1px solid #e9ecef;border-radius:.85rem;background:#fff;transition:background .15s ease,border-color .15s ease}
 .usage-row:hover{background:#fafbfc;border-color:rgba(6,182,185,.25)}
 .min-w-0{min-width:0}
-@media (max-width:575.98px){.info-grid{grid-template-columns:1fr}}
+@media (max-width:575.98px){.info-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 {% endblock %}
