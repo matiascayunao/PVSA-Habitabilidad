@@ -27,12 +27,15 @@
     >
       <i class="bi bi-funnel me-1"></i>
       Filtros
-      {% if lugar_actual or objeto_actual or tipo_actual or estado_actual %}
+      {% if consulta or lugar_actual or objeto_actual or tipo_actual or estado_actual %}
         <span class="badge rounded-pill pvsa-bg text-white ms-1">Activo</span>
       {% endif %}
     </button>
   </div>
 
+  <form method="get" id="busquedaListado">
+    {% for nombre, valor in filtros_listado %}<input type="hidden" name="{{ nombre }}" value="{{ valor }}">{% endfor %}
+  </form>
   <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-body p-3 p-md-4">
       <div class="row g-3 align-items-center">
@@ -43,21 +46,22 @@
             </span>
 
             <input
-              id="buscarHistorico"
+              id="buscarHistorico" name="q" form="busquedaListado" value="{{ consulta }}"
               type="search"
               class="form-control border-start-0 ps-0"
               placeholder="Buscar objeto, lugar, ubicación o sector..."
               autocomplete="off"
             >
+            <button class="btn btn-outline-secondary" type="submit" form="busquedaListado">Buscar</button>
           </div>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-auto">
-          <select id="ordenHistoricos" class="form-select">
-            <option value="reciente">Más reciente</option>
-            <option value="antiguo">Más antiguo</option>
-            <option value="objeto">Por objeto</option>
-            <option value="lugar">Por lugar</option>
+          <select id="ordenHistoricos" name="orden" form="busquedaListado" class="form-select">
+            <option value="reciente" {% if orden == "reciente" %}selected{% endif %}>Más reciente</option>
+            <option value="antiguo" {% if orden == "antiguo" %}selected{% endif %}>Más antiguo</option>
+            <option value="objeto" {% if orden == "objeto" %}selected{% endif %}>Por objeto</option>
+            <option value="lugar" {% if orden == "lugar" %}selected{% endif %}>Por lugar</option>
           </select>
         </div>
 
@@ -65,12 +69,12 @@
           <div class="result-count">
             <i class="bi bi-clock-history me-1"></i>
             <span id="historicosVisibles">{{ historicos|length }}</span>
-            de {{ historicos|length }} registros
+            de {{ paginator.count }} registros
           </div>
         </div>
       </div>
 
-      {% if lugar_actual or objeto_actual or tipo_actual or estado_actual %}
+      {% if consulta or lugar_actual or objeto_actual or tipo_actual or estado_actual %}
         <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
           <span class="small text-muted">Filtros aplicados</span>
           <a
@@ -194,7 +198,7 @@
         <h2 class="h5 fw-bold">No hay registros históricos</h2>
 
         <div class="text-muted">
-          {% if lugar_actual or objeto_actual or tipo_actual or estado_actual %}
+          {% if consulta or lugar_actual or objeto_actual or tipo_actual or estado_actual %}
             No hay cambios que coincidan con los filtros aplicados.
           {% else %}
             Los cambios guardados en los objetos aparecerán aquí.
@@ -203,6 +207,27 @@
       </div>
     </div>
   {% endif %}
+
+  <nav aria-label="Páginas del listado" class="my-4">
+    <p class="small text-muted">Mostrando {{ pagina.start_index }}–{{ pagina.end_index }} de {{ paginator.count }} registros · Página {{ pagina.number }} de {{ paginator.num_pages }}</p>
+    <ul class="pagination pagination-sm flex-wrap gap-1">
+      {% if pagina.has_previous %}
+        <li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.previous_page_number %}">Anterior</a></li>
+      {% endif %}
+      {% for numero in paginas %}
+        {% if numero == pagina.number %}
+          <li class="page-item active"><span class="page-link" aria-current="page">{{ numero }}</span></li>
+        {% elif numero == paginator.ELLIPSIS %}
+          <li class="page-item disabled"><span class="page-link">{{ numero }}</span></li>
+        {% else %}
+          <li class="page-item"><a class="page-link" href="{% querystring pagina=numero %}">{{ numero }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if pagina.has_next %}
+        <li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.next_page_number %}">Siguiente</a></li>
+      {% endif %}
+    </ul>
+  </nav>
 
 </div>
 
@@ -216,7 +241,8 @@
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable filtros-modal-dialog">
     <div class="modal-content border-0 rounded-4 shadow">
 
-      <form method="get" id="filtrosHistoricoForm" data-filtros-dependientes="0"></form>
+      <form method="get" id="filtrosHistoricoForm" data-filtros-dependientes="0"><input type="hidden" name="q" value="{{ consulta }}">
+          <input type="hidden" name="orden" value="{{ orden }}"></form>
       <div>
 
         <div class="modal-header border-bottom">
@@ -370,85 +396,36 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const grid = document.getElementById("historicosGrid");
+  const form = document.getElementById("busquedaListado");
   const searchInput = document.getElementById("buscarHistorico");
   const orderSelect = document.getElementById("ordenHistoricos");
-  const count = document.getElementById("historicosVisibles");
-  const empty = document.getElementById("sinResultadosHistorico");
-
-  function normalizar(texto) {
-    return String(texto || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
-  }
-
-  function items() {
-    return grid ? Array.from(grid.querySelectorAll(".historico-item")) : [];
-  }
-
-  function ordenar() {
-    if (!grid || !orderSelect) return;
-
-    const criterio = orderSelect.value;
-
-    items()
-      .sort(function (a, b) {
-        if (criterio === "antiguo") {
-          return (a.dataset.fecha || "").localeCompare(b.dataset.fecha || "");
-        }
-
-        if (criterio === "objeto") {
-          return normalizar(a.dataset.objeto).localeCompare(
-            normalizar(b.dataset.objeto),
-            "es"
-          );
-        }
-
-        if (criterio === "lugar") {
-          return normalizar(a.dataset.lugar).localeCompare(
-            normalizar(b.dataset.lugar),
-            "es"
-          );
-        }
-
-        return (b.dataset.fecha || "").localeCompare(a.dataset.fecha || "");
-      })
-      .forEach(function (item) {
-        grid.appendChild(item);
-      });
-  }
-
-  function filtrar() {
-    const consulta = normalizar(searchInput?.value);
-    let visibles = 0;
-
-    items().forEach(function (item) {
-      const mostrar =
-        !consulta ||
-        normalizar(item.dataset.search).includes(consulta);
-
-      item.classList.toggle("d-none", !mostrar);
-
-      if (mostrar) visibles += 1;
+  const filterFormForSearch = document.getElementById("filtrosHistoricoForm");
+  filterFormForSearch.addEventListener("submit", function () {
+    ["q", "orden", "vista"].forEach(function (name) {
+      const control = form.elements.namedItem(name);
+      const hidden = filterFormForSearch.elements.namedItem(name);
+      if (control && hidden) hidden.value = control.value;
     });
+  });
+  let searchTimer;
+  const focusKey = "pvsa_busqueda_" + window.location.pathname;
+  try {
+    if (sessionStorage.getItem(focusKey)) {
+      sessionStorage.removeItem(focusKey);
+      searchInput.focus();
+      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    }
+  } catch (_) {}
+  searchInput.addEventListener("input", function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      try { sessionStorage.setItem(focusKey, "1"); } catch (_) {}
+      form.requestSubmit();
+    }, 600);
+  });
+  form.addEventListener("submit", function () { clearTimeout(searchTimer); });
+  orderSelect.addEventListener("change", function () { form.requestSubmit(); });
 
-    if (count) count.textContent = visibles;
-    if (empty) empty.classList.toggle("d-none", visibles !== 0);
-  }
-
-  if (searchInput) searchInput.addEventListener("input", filtrar);
-
-  if (orderSelect) {
-    orderSelect.addEventListener("change", function () {
-      ordenar();
-      filtrar();
-    });
-  }
-
-  ordenar();
-  filtrar();
 });
 </script>
 {% endblock %}

@@ -7,6 +7,10 @@ from .estructura import Lugar
 from .catalogos import TipoObjeto
 
 
+class ConflictoInventario(ValidationError):
+    pass
+
+
 class ObjetoLugar(models.Model):
 
     ESTADO = (
@@ -405,6 +409,24 @@ class ObjetoLugar(models.Model):
             ),
         ]
 
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instancia = super().from_db(db, field_names, values)
+        instancia._valores_cargados = dict(zip(field_names, values))
+        return instancia
+
+    def _recordar_guardado(self, campos=None):
+        valores = getattr(self, "_valores_cargados", {}).copy()
+        for campo in self._meta.concrete_fields:
+            if campos is None or campo.name in campos or campo.attname in campos:
+                if campo.attname in self.__dict__:
+                    valores[campo.attname] = self.__dict__[campo.attname]
+        self._valores_cargados = valores
+
+    def refresh_from_db(self, using=None, fields=None, from_queryset=None):
+        super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
+        self._recordar_guardado(fields)
+
     @transaction.atomic
     def save(self, *args, **kwargs):
 
@@ -419,9 +441,17 @@ class ObjetoLugar(models.Model):
             ).first()
 
         campos_actualizados = kwargs.get("update_fields")
-        if anterior is not None and campos_actualizados is not None:
+        if campos_actualizados is not None:
             campos_actualizados = set(campos_actualizados)
             kwargs["update_fields"] = campos_actualizados
+        valores = getattr(self, "_valores_cargados", {})
+        if anterior is not None:
+            for campo in self._meta.concrete_fields:
+                if campos_actualizados is not None and campo.name not in campos_actualizados and campo.attname not in campos_actualizados:
+                    continue
+                if campo.attname in valores and valores[campo.attname] != getattr(anterior, campo.attname):
+                    raise ConflictoInventario("El inventario cambió mientras se guardaba.")
+        if anterior is not None and campos_actualizados is not None:
             self.estado = self.calcular_estado(
                 self.cantidad_mala if "cantidad_mala" in campos_actualizados else anterior.cantidad_mala,
                 self.cantidad_pendiente if "cantidad_pendiente" in campos_actualizados else anterior.cantidad_pendiente,
@@ -537,6 +567,7 @@ class ObjetoLugar(models.Model):
 
                     )
 
+                self._recordar_guardado(kwargs.get("update_fields"))
                 return
 
         super().save(
@@ -546,6 +577,7 @@ class ObjetoLugar(models.Model):
             **kwargs,
 
         )
+        self._recordar_guardado(kwargs.get("update_fields"))
 
 
 class HistoricoObjeto(models.Model):

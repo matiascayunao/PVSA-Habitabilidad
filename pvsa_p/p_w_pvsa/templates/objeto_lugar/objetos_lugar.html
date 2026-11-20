@@ -50,6 +50,9 @@
 
   <div id="activeFilters" class="d-flex flex-wrap gap-2 mb-3"></div>
 
+  <form method="get" id="busquedaListado">
+    {% for nombre, valor in filtros_listado %}<input type="hidden" name="{{ nombre }}" value="{{ valor }}">{% endfor %}
+  </form>
   <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-body p-3 p-md-4">
       <div class="row g-3 align-items-center">
@@ -61,35 +64,36 @@
             </span>
 
             <input
-              id="buscarObjeto"
+              id="buscarObjeto" name="q" form="busquedaListado" value="{{ consulta }}"
               type="search"
               class="form-control border-start-0 ps-0"
               placeholder="Buscar por objeto, lugar, sector, marca o material..."
               autocomplete="off"
             >
+            <button class="btn btn-outline-secondary" type="submit" form="busquedaListado">Buscar</button>
           </div>
         </div>
 
         <div class="col-12 col-md-6 col-lg-auto">
-          <select id="vistaRapida" class="form-select">
-            <option value="todos">Todos los estados</option>
-            <option value="atencion">Solo requieren atención</option>
-            <option value="falla">Con unidades con falla</option>
-            <option value="revision">Con unidades por revisar</option>
-            <option value="operativo">Solo operativos</option>
+          <select id="vistaRapida" name="vista" form="busquedaListado" class="form-select">
+            <option value="todos" {% if vista == "todos" %}selected{% endif %}>Todos los estados</option>
+            <option value="atencion" {% if vista == "atencion" %}selected{% endif %}>Solo requieren atención</option>
+            <option value="falla" {% if vista == "falla" %}selected{% endif %}>Con unidades con falla</option>
+            <option value="revision" {% if vista == "revision" %}selected{% endif %}>Con unidades por revisar</option>
+            <option value="operativo" {% if vista == "operativo" %}selected{% endif %}>Solo operativos</option>
           </select>
         </div>
 
         <div class="col-12 col-md-6 col-lg-auto">
-          <select id="ordenObjetos" class="form-select">
-            <option value="criticos">Críticos primero</option>
-            <option value="fallas">Más fallas primero</option>
-            <option value="pendientes">Más pendientes primero</option>
-            <option value="importancia">Mayor importancia</option>
-            <option value="recientes">Más recientes</option>
-            <option value="objeto_az">Objeto A → Z</option>
-            <option value="lugar_az">Lugar A → Z</option>
-            <option value="operativos">Operativos primero</option>
+          <select id="ordenObjetos" name="orden" form="busquedaListado" class="form-select">
+            <option value="criticos" {% if orden == "criticos" %}selected{% endif %}>Críticos primero</option>
+            <option value="fallas" {% if orden == "fallas" %}selected{% endif %}>Más fallas primero</option>
+            <option value="pendientes" {% if orden == "pendientes" %}selected{% endif %}>Más pendientes primero</option>
+            <option value="importancia" {% if orden == "importancia" %}selected{% endif %}>Mayor importancia</option>
+            <option value="recientes" {% if orden == "recientes" %}selected{% endif %}>Más recientes</option>
+            <option value="objeto_az" {% if orden == "objeto_az" %}selected{% endif %}>Objeto A → Z</option>
+            <option value="lugar_az" {% if orden == "lugar_az" %}selected{% endif %}>Lugar A → Z</option>
+            <option value="operativos" {% if orden == "operativos" %}selected{% endif %}>Operativos primero</option>
           </select>
         </div>
 
@@ -97,7 +101,7 @@
           <div class="result-count">
             <i class="bi bi-box-seam me-1"></i>
             <span id="objetosVisibles">{{ objetos|length }}</span>
-            de {{ objetos|length }} registros
+            de {{ paginator.count }} registros
           </div>
         </div>
 
@@ -379,14 +383,14 @@
         <h2 class="h5 fw-bold">No hay objetos para mostrar</h2>
 
         <div class="text-muted mb-3">
-          {% if sector_actual or ubicacion_actual or piso_actual or tipo_lugar_actual or lugar_actual or categoria_actual or objeto_actual or tipo_actual or estado_actual or importancia_actual or operatividad_actual or marca_actual or material_actual %}
+          {% if consulta or vista != "todos" or sector_actual or ubicacion_actual or piso_actual or tipo_lugar_actual or lugar_actual or categoria_actual or objeto_actual or tipo_actual or estado_actual or importancia_actual or operatividad_actual or marca_actual or material_actual %}
             No existen resultados con los filtros seleccionados.
           {% else %}
             Todavía no hay objetos registrados en los lugares.
           {% endif %}
         </div>
 
-        {% if sector_actual or ubicacion_actual or piso_actual or tipo_lugar_actual or lugar_actual or categoria_actual or objeto_actual or tipo_actual or estado_actual or importancia_actual or operatividad_actual or marca_actual or material_actual %}
+        {% if consulta or vista != "todos" or sector_actual or ubicacion_actual or piso_actual or tipo_lugar_actual or lugar_actual or categoria_actual or objeto_actual or tipo_actual or estado_actual or importancia_actual or operatividad_actual or marca_actual or material_actual %}
           <a href="{% url 'lista_objetos_lugar' %}" class="btn btn-outline-secondary">
             Limpiar filtros
           </a>
@@ -395,11 +399,35 @@
     </div>
   {% endif %}
 
+  <nav aria-label="Páginas del listado" class="my-4">
+    <p class="small text-muted">Mostrando {{ pagina.start_index }}–{{ pagina.end_index }} de {{ paginator.count }} registros · Página {{ pagina.number }} de {{ paginator.num_pages }}</p>
+    <ul class="pagination pagination-sm flex-wrap gap-1">
+      {% if pagina.has_previous %}
+        <li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.previous_page_number %}">Anterior</a></li>
+      {% endif %}
+      {% for numero in paginas %}
+        {% if numero == pagina.number %}
+          <li class="page-item active"><span class="page-link" aria-current="page">{{ numero }}</span></li>
+        {% elif numero == paginator.ELLIPSIS %}
+          <li class="page-item disabled"><span class="page-link">{{ numero }}</span></li>
+        {% else %}
+          <li class="page-item"><a class="page-link" href="{% querystring pagina=numero %}">{{ numero }}</a></li>
+        {% endif %}
+      {% endfor %}
+      {% if pagina.has_next %}
+        <li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.next_page_number %}">Siguiente</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+
   <div class="modal fade" id="filtrosObjetosModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
       <div class="modal-content rounded-4">
 
-        <form method="get" id="filterForm">
+        <form method="get" id="filterForm" data-filtros-dependientes="1">
+          <input type="hidden" name="q" value="{{ consulta }}">
+          <input type="hidden" name="orden" value="{{ orden }}">
+          <input type="hidden" name="vista" value="{{ vista }}">
           <div class="modal-header">
             <div>
               <h5 class="modal-title fw-bold">
@@ -1048,198 +1076,52 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("busquedaListado");
   const searchInput = document.getElementById("buscarObjeto");
-  const quickView = document.getElementById("vistaRapida");
   const orderSelect = document.getElementById("ordenObjetos");
-  const visibleCount = document.getElementById("objetosVisibles");
-  const emptySearch = document.getElementById("sinResultadosBusqueda");
-
-  function normalizar(texto) {
-    return String(texto || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
-  }
-
-  function valorNumero(item, key) {
-    let value = String(item.dataset[key] || "0").replace(",", ".");
-    value = parseFloat(value);
-    return isNaN(value) ? 0 : value;
-  }
-
-  function allItems() {
-    return Array.from(document.querySelectorAll(".objeto-item"));
-  }
-
-  function textoItem(item) {
-    return normalizar([
-      item.dataset.nombre,
-      item.dataset.lugar,
-      item.dataset.sector,
-      item.dataset.ubicacion,
-      item.dataset.marca,
-      item.dataset.material
-    ].join(" "));
-  }
-
-  function coincideVista(item) {
-    const vista = quickView?.value || "todos";
-    const op = valorNumero(item, "operatividad");
-    const fallas = valorNumero(item, "fallas");
-    const pendientes = valorNumero(item, "pendientes");
-
-    if (vista === "atencion") return op < 80;
-    if (vista === "falla") return fallas > 0;
-    if (vista === "revision") return pendientes > 0;
-    if (vista === "operativo") return op >= 80;
-
-    return true;
-  }
-
-  function filtrar() {
-    const consulta = normalizar(searchInput?.value);
-    let visiblesDesktop = 0;
-
-    allItems().forEach(function (item) {
-      const coincideBusqueda = !consulta || textoItem(item).includes(consulta);
-      const mostrar = coincideBusqueda && coincideVista(item);
-
-      item.classList.toggle("d-none", !mostrar);
-
-      if (
-        mostrar &&
-        item.tagName.toLowerCase() === "tr"
-      ) {
-        visiblesDesktop += 1;
-      }
+  const filterFormForSearch = document.getElementById("filterForm");
+  filterFormForSearch.addEventListener("submit", function () {
+    ["q", "orden", "vista"].forEach(function (name) {
+      const control = form.elements.namedItem(name);
+      const hidden = filterFormForSearch.elements.namedItem(name);
+      if (control && hidden) hidden.value = control.value;
     });
-
-    if (visibleCount) {
-      visibleCount.textContent = visiblesDesktop;
+  });
+  let searchTimer;
+  const focusKey = "pvsa_busqueda_" + window.location.pathname;
+  try {
+    if (sessionStorage.getItem(focusKey)) {
+      sessionStorage.removeItem(focusKey);
+      searchInput.focus();
+      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
-
-    if (emptySearch) {
-      emptySearch.classList.toggle("d-none", visiblesDesktop !== 0);
+  } catch (_) {}
+  searchInput.addEventListener("input", function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      try { sessionStorage.setItem(focusKey, "1"); } catch (_) {}
+      form.requestSubmit();
+    }, 600);
+  });
+  form.addEventListener("submit", function () { clearTimeout(searchTimer); });
+  const quickView = document.getElementById("vistaRapida");
+  const params = new URLSearchParams(window.location.search);
+  let restore = false;
+  [[quickView, "pvsa_objetos_vista_rapida"], [orderSelect, "pvsa_objetos_orden"]].forEach(function ([select, key]) {
+    const saved = window.pvsaStorage.getItem(key);
+    if (!params.has(select.name) && saved && Array.from(select.options).some(option => option.value === saved) && saved !== select.value) {
+      params.set(select.name, saved);
+      restore = true;
     }
-  }
-
-  function comparar(a, b, criterio) {
-    const nombreA = normalizar(a.dataset.nombre);
-    const nombreB = normalizar(b.dataset.nombre);
-    const lugarA = normalizar(a.dataset.lugar);
-    const lugarB = normalizar(b.dataset.lugar);
-    const opA = valorNumero(a, "operatividad");
-    const opB = valorNumero(b, "operatividad");
-    const fallasA = valorNumero(a, "fallas");
-    const fallasB = valorNumero(b, "fallas");
-    const pendientesA = valorNumero(a, "pendientes");
-    const pendientesB = valorNumero(b, "pendientes");
-    const importanciaA = valorNumero(a, "importancia");
-    const importanciaB = valorNumero(b, "importancia");
-    const fechaA = a.dataset.fecha || "";
-    const fechaB = b.dataset.fecha || "";
-
-    if (criterio === "fallas") {
-      return fallasB - fallasA || opA - opB || nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "pendientes") {
-      return pendientesB - pendientesA || opA - opB || nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "importancia") {
-      return importanciaB - importanciaA || opA - opB || nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "recientes") {
-      return fechaB.localeCompare(fechaA) || nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "objeto_az") {
-      return nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "lugar_az") {
-      return lugarA.localeCompare(lugarB, "es") || nombreA.localeCompare(nombreB, "es");
-    }
-
-    if (criterio === "operativos") {
-      return opB - opA || nombreA.localeCompare(nombreB, "es");
-    }
-
-    return opA - opB || fallasB - fallasA || nombreA.localeCompare(nombreB, "es");
-  }
-
-  function ordenarContenedor(selector, containerSelector) {
-    const container = document.querySelector(containerSelector);
-    if (!container || !orderSelect) return;
-
-    const items = Array.from(container.querySelectorAll(selector));
-    const criterio = orderSelect.value;
-
-    items
-      .sort(function (a, b) {
-        return comparar(a, b, criterio);
-      })
-      .forEach(function (item) {
-        container.appendChild(item);
-      });
-  }
-
-  function ordenar() {
-    ordenarContenedor("tr.objeto-item", "#objetosTableBody");
-    ordenarContenedor(".objeto-mobile-card.objeto-item", "#objetosMobile");
-  }
-
-  if (searchInput) {
-    searchInput.addEventListener("input", filtrar);
-  }
-
-  if (quickView) {
-    const savedQuickView = window.pvsaStorage.getItem("pvsa_objetos_vista_rapida");
-
-    if (
-      savedQuickView &&
-      ["todos", "atencion", "falla", "revision", "operativo"].includes(savedQuickView)
-    ) {
-      quickView.value = savedQuickView;
-    }
-
-    quickView.addEventListener("change", function () {
-      window.pvsaStorage.setItem("pvsa_objetos_vista_rapida", quickView.value);
-      filtrar();
+    select.addEventListener("change", function () {
+      window.pvsaStorage.setItem(key, select.value);
+      form.requestSubmit();
     });
+  });
+  if (restore) {
+    params.delete("pagina");
+    window.location.replace(window.location.pathname + "?" + params.toString());
   }
-
-  if (orderSelect) {
-    const savedOrder = window.pvsaStorage.getItem("pvsa_objetos_orden");
-
-    if (
-      savedOrder &&
-      [
-        "criticos",
-        "fallas",
-        "pendientes",
-        "importancia",
-        "recientes",
-        "objeto_az",
-        "lugar_az",
-        "operativos"
-      ].includes(savedOrder)
-    ) {
-      orderSelect.value = savedOrder;
-    }
-
-    orderSelect.addEventListener("change", function () {
-      window.pvsaStorage.setItem("pvsa_objetos_orden", orderSelect.value);
-      ordenar();
-      filtrar();
-    });
-  }
-
-  ordenar();
-  filtrar();
 
   const filterForm = document.getElementById("filterForm");
   const filterBadge = document.getElementById("filterCountBadge");

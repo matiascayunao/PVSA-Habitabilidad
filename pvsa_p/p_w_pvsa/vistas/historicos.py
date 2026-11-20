@@ -1,3 +1,6 @@
+import unicodedata
+
+from django.core.paginator import Paginator
 from ..servicios.identificadores import entero_identificador
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
@@ -56,6 +59,37 @@ def lista_historicos(request):
         "objeto_del_lugar__lugar__piso__piso",
         "objeto_del_lugar__lugar__nombre_del_lugar",
     )
+    consulta = request.GET.get("q", "").strip()
+    orden = request.GET.get("orden", "reciente")
+    if orden not in {"reciente", "antiguo", "objeto", "lugar"}:
+        orden = "reciente"
+
+    def normalizar(texto):
+        return "".join(c for c in unicodedata.normalize("NFD", str(texto or "").lower())
+                       if not "\u0300" <= c <= "\u036f").strip()
+
+    def coincide(historico):
+        lugar = historico.objeto_del_lugar.lugar
+        datos = historico.variante_anterior or {}
+        texto = " ".join([historico.identidad_variante, datos.get("marca") or "",
+                          datos.get("material") or "", lugar.nombre_del_lugar if lugar else "",
+                          lugar.piso.ubicacion.ubicacion if lugar else "",
+                          lugar.piso.ubicacion.sector.sector if lugar else ""])
+        return not consulta or normalizar(consulta) in normalizar(texto)
+
+    def clave(historico):
+        if orden == "objeto":
+            valor = normalizar(historico.identidad_variante)
+        elif orden == "lugar":
+            valor = normalizar(historico.objeto_del_lugar.lugar.nombre_del_lugar
+                               if historico.objeto_del_lugar.lugar else "")
+        else:
+            valor = historico.fecha_anterior.toordinal() * (1 if orden == "antiguo" else -1)
+        return valor, historico.pk
+
+    historicos = sorted(filter(coincide, historicos), key=clave)
+    paginator = Paginator(historicos, 50)
+    pagina = paginator.get_page(request.GET.get("pagina"))
     lugares = (
         Lugar.objects.select_related(
             "piso",
@@ -91,7 +125,14 @@ def lista_historicos(request):
         request,
         "historico/historicos.html",
         {
-            "historicos": historicos,
+            "historicos": pagina,
+            "pagina": pagina,
+            "paginator": paginator,
+            "paginas": paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1),
+            "consulta": consulta, "orden": orden,
+            "filtros_listado": [(k, request.GET[k]) for k in (
+                "lugar", "objeto", "tipo", "estado",
+            ) if request.GET.get(k)],
             "lugares": lugares,
             "objetos_catalogo": objetos,
             "tipos": tipos,

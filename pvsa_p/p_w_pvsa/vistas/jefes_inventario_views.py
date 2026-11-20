@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import OperationalError, connection, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from ..forms import CrearObjetoLugar, EditarObjetoLugar
 from ..models import AuditoriaInventarioJefe, ObjetoLugar
+from ..modelos.inventario import ConflictoInventario
 from ..pvsa_permisos import es_jefe_departamento, lugares_propios_jefe
 
 
@@ -97,6 +98,7 @@ def crear_objeto_jefe(request, lugar_id):
 @require_http_methods(["GET", "POST"])
 def editar_objeto_jefe(request, objeto_lugar_id):
     _exigir_jefe(request.user)
+    estado_respuesta = 200
     
     base = ObjetoLugar.objects.filter(
         lugar__in=lugares_propios_jefe(request.user)
@@ -120,18 +122,30 @@ def editar_objeto_jefe(request, objeto_lugar_id):
                 ):
                     messages.info(request, "No había cambios que guardar.")
                 else:
-                    actualizado.save()  
-                    _auditar(
-                        request.user,
-                        AuditoriaInventarioJefe.Accion.EDITAR,
-                        actualizado,
-                        antes,
-                        _fotografia_registro(actualizado),
+                    try:
+                        with transaction.atomic():
+                            actualizado.save()
+                            _auditar(
+                                request.user,
+                                AuditoriaInventarioJefe.Accion.EDITAR,
+                                actualizado,
+                                antes,
+                                _fotografia_registro(actualizado),
+                            )
+                    except (ConflictoInventario, OperationalError) as error:
+                        if isinstance(error, OperationalError) and (
+                            connection.vendor != "sqlite"
+                            or getattr(error.__cause__, "sqlite_errorcode", 0) & 0xFF not in (5, 6)
+                        ):
+                            raise
+                        form.add_error(None, "Otra operación modificó o está guardando el inventario. No se guardaron tus cambios. Vuelve a abrir el inventario y revisa los datos.")
+                        estado_respuesta = 409
+                    else:
+                        messages.success(request, "Objeto actualizado correctamente.")
+                if estado_respuesta != 409:
+                    return redirect(
+                        "detalle_lugar_jefe", lugar_id=actualizado.lugar_id
                     )
-                    messages.success(request, "Objeto actualizado correctamente.")
-                return redirect(
-                    "detalle_lugar_jefe", lugar_id=actualizado.lugar_id
-                )
     else:
         objeto = get_object_or_404(base, pk=objeto_lugar_id)
         form = EditarObjetoLugar(instance=objeto)
@@ -145,4 +159,5 @@ def editar_objeto_jefe(request, objeto_lugar_id):
             "lugar": objeto.lugar,
             "form": form,
         },
+        status=estado_respuesta,
     )

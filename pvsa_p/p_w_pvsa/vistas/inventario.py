@@ -1,7 +1,10 @@
+import unicodedata
+
+from django.core.paginator import Paginator
 from ..servicios.identificadores import entero_identificador
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, transaction
+from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -19,6 +22,7 @@ from ..models import Objeto
 from ..models import TipoObjeto
 from ..models import ObjetoLugar
 from ..models import HistoricoObjeto
+from ..modelos.inventario import ConflictoInventario
 from ..servicios.inventario import obtener_o_crear_variante, resolver_catalogo_inventario
 from .eliminacion import _confirm_delete
 
@@ -138,6 +142,53 @@ def lista_objetos_lugar(request):
 
         objetos_lugar = filtrados
 
+    consulta = request.GET.get("q", "").strip()
+    vista = request.GET.get("vista", "todos")
+    orden = request.GET.get("orden", "criticos")
+    if vista not in {"todos", "atencion", "falla", "revision", "operativo"}:
+        vista = "todos"
+    if orden not in {"criticos", "fallas", "pendientes", "importancia", "recientes", "objeto_az", "lugar_az", "operativos"}:
+        orden = "criticos"
+
+    def normalizar(texto):
+        return "".join(c for c in unicodedata.normalize("NFD", str(texto or "").lower())
+                       if not "\u0300" <= c <= "\u036f").strip()
+
+    def coincide(obj):
+        op = obj.operatividad_objeto
+        if ((vista == "atencion" and op >= 80)
+                or (vista == "falla" and not obj.cantidad_mala)
+                or (vista == "revision" and not obj.cantidad_pendiente)
+                or (vista == "operativo" and op < 80)):
+            return False
+        variante, lugar = obj.tipo_de_objeto, obj.lugar
+        textos = [variante.objeto.nombre_del_objeto if variante else "",
+                  lugar.nombre_del_lugar if lugar else "",
+                  lugar.piso.ubicacion.sector.sector if lugar else "",
+                  lugar.piso.ubicacion.ubicacion if lugar else "",
+                  (variante.marca or "") if variante else "",
+                  (variante.material or "") if variante else ""]
+        return not consulta or normalizar(consulta) in normalizar(" ".join(textos))
+
+    def clave(obj):
+        nombre = normalizar(obj.tipo_de_objeto.objeto.nombre_del_objeto if obj.tipo_de_objeto else "")
+        op = obj.operatividad_objeto
+        criterios = {
+            "criticos": (op, -(obj.cantidad_mala or 0), nombre),
+            "fallas": (-(obj.cantidad_mala or 0), op, nombre),
+            "pendientes": (-(obj.cantidad_pendiente or 0), op, nombre),
+            "importancia": (-(obj.importancia or 1), op, nombre),
+            "recientes": (-obj.fecha.toordinal(), nombre),
+            "objeto_az": (nombre,),
+            "lugar_az": (normalizar(obj.lugar.nombre_del_lugar if obj.lugar else ""), nombre),
+            "operativos": (-op, nombre),
+        }
+        return (*criterios[orden], obj.pk)
+
+    objetos_lugar = sorted(filter(coincide, objetos_lugar), key=clave)
+    paginator = Paginator(objetos_lugar, 50)
+    pagina = paginator.get_page(request.GET.get("pagina"))
+
     sectores = Sector.objects.all().order_by("sector")
 
     ubicaciones = (
@@ -205,7 +256,15 @@ def lista_objetos_lugar(request):
         request,
         "objeto_lugar/objetos_lugar.html",
         {
-            "objetos": objetos_lugar,
+            "objetos": pagina,
+            "pagina": pagina,
+            "paginator": paginator,
+            "paginas": paginator.get_elided_page_range(pagina.number, on_each_side=1, on_ends=1),
+            "consulta": consulta, "vista": vista, "orden": orden,
+            "filtros_listado": [(k, request.GET[k]) for k in (
+                "sector", "ubicacion", "piso", "tipo_lugar", "lugar", "categoria",
+                "objeto", "tipo", "estado", "importancia", "operatividad", "marca", "material",
+            ) if request.GET.get(k)],
 
             "sectores": sectores,
             "ubicaciones": ubicaciones,
@@ -389,9 +448,20 @@ def editar_objeto_lugar(request, objeto_lugar_id):
         )
 
     form = EditarObjetoLugar(request.POST, instance=objeto_lugar)
+    estado_respuesta = 200
     if form.is_valid():
-        form.save()
-        return redirect("detalle_objeto_lugar", objeto_lugar_id=objeto_lugar.id)
+        try:
+            form.save()
+        except (ConflictoInventario, OperationalError) as error:
+            if isinstance(error, OperationalError) and (
+                connection.vendor != "sqlite"
+                or getattr(error.__cause__, "sqlite_errorcode", 0) & 0xFF not in (5, 6)
+            ):
+                raise
+            form.add_error(None, "Otra operación modificó o está guardando el inventario. No se guardaron tus cambios. Vuelve a abrir el inventario y revisa los datos.")
+            estado_respuesta = 409
+        else:
+            return redirect("detalle_objeto_lugar", objeto_lugar_id=objeto_lugar.id)
 
     return render(
         request,
@@ -401,6 +471,7 @@ def editar_objeto_lugar(request, objeto_lugar_id):
             "form": form,
             "cancel_url": cancel_url,
         },
+        status=estado_respuesta,
     )
 
 
