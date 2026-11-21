@@ -2,6 +2,7 @@ from copy import copy
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 
 from .estructura import Lugar
 from .catalogos import TipoObjeto
@@ -681,14 +682,19 @@ class HistoricoObjeto(models.Model):
 
     @staticmethod
     def capturar_variante(inventario):
+        datos = {
+            "version": 1,
+            "lugar_id": inventario.lugar_id,
+            "fecha_registro": timezone.now().isoformat(),
+        }
         variante = TipoObjeto.objects.select_related("objeto__objeto_categoria").filter(
             pk=inventario.tipo_de_objeto_id,
         ).first()
         if variante is None:
-            return {"version": 1, "variante_id": None}
+            return {**datos, "variante_id": None}
         objeto = variante.objeto
         return {
-            "version": 1,
+            **datos,
             "variante_id": variante.pk,
             "objeto_id": objeto.pk,
             "objeto": objeto.nombre_del_objeto,

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Historial del inventario · PVSA{% endblock %}
+{% block content %}
+<div class="py-2 py-lg-3 pvsa-wrap">
+  <a class="btn btn-outline-secondary btn-sm mb-3" href="{% url 'detalle_lugar_jefe' lugar_id=objeto.lugar_id %}#objeto-{{ objeto.id }}">
+    <i class="bi bi-arrow-left me-1"></i>Volver al inventario
+  </a>
+  <h1 class="h3 fw-bold text-break">Historial del inventario</h1>
+  <p class="fw-semibold text-break">{{ objeto.tipo_de_objeto|default:"Sin variante asignada" }} · {{ objeto.lugar.nombre_del_lugar }}</p>
+  <p class="text-muted">Consulta de solo lectura. Los registros antiguos sin un lugar de origen comprobable están disponibles para la administración.</p>
+  <form method="get" data-filtros-dependientes="0" class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body row g-3 align-items-end">
+      <div class="col-12 col-lg">
+        <label for="buscarHistoricoPropio" class="form-label">Buscar objeto, marca, material u observación</label>
+        <input id="buscarHistoricoPropio" type="search" name="q" value="{{ consulta }}" class="form-control">
+      </div>
+      <div class="col-12 col-md-4 col-lg-auto">
+        <label for="estadoHistoricoPropio" class="form-label">Estado anterior</label>
+        <select id="estadoHistoricoPropio" name="estado" class="form-select">
+          <option value="">Todos</option>
+          {% for valor, etiqueta in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-4 col-lg-auto">
+        <label for="ordenHistoricoPropio" class="form-label">Orden</label>
+        <select id="ordenHistoricoPropio" name="orden" class="form-select">
+          <option value="reciente" {% if orden == 'reciente' %}selected{% endif %}>Más reciente</option>
+          <option value="antiguo" {% if orden == 'antiguo' %}selected{% endif %}>Más antiguo</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-4 col-lg-auto d-flex gap-2">
+        <button class="btn pvsa-btn" type="submit">Aplicar</button>
+        <a class="btn btn-outline-secondary" href="{% url 'jefe_historicos_objeto' objeto_lugar_id=objeto.id %}">Limpiar</a>
+      </div>
+    </div>
+  </form>
+  <p class="small text-muted">Mostrando {{ pagina.start_index }}–{{ pagina.end_index }} de {{ pagina.paginator.count }} registros</p>
+  <div class="row g-3">
+    {% for h in pagina %}
+      <div class="col-12 col-xl-6">
+        <a class="card border-0 shadow-sm rounded-4 h-100 text-reset text-decoration-none" href="{% url 'jefe_detalle_historico' historico_id=h.id %}{% if contexto_historial %}?{{ contexto_historial }}{% endif %}">
+          <div class="card-body">
+            <h2 class="h6 fw-bold text-break">{{ h.identidad_variante }}</h2>
+            <p class="small text-muted mb-2">{% if h.fecha_registro %}Registrado el {{ h.fecha_registro|date:"d/m/Y H:i:s" }}{% else %}Fecha y hora no registradas{% endif %}</p>
+            <p class="small text-break">Lugar al registrar el cambio: {{ h.lugar_origen_nombre }}</p>
+            <p class="mb-2">Total anterior: {{ h.cantidad_anterior }} · Con falla: {{ h.cantidad_mala_anterior }} · Por revisar: {{ h.cantidad_pendiente_anterior }}</p>
+            <p class="mb-2">Estado anterior: {{ h.get_estado_anterior_display }}</p>
+            {% if h.detalle_anterior %}<p class="small text-break mb-2">{{ h.detalle_anterior }}</p>{% endif %}
+            <span class="small pvsa-text">Ver detalle <i class="bi bi-chevron-right"></i></span>
+          </div>
+        </a>
+      </div>
+    {% empty %}
+      <div class="col-12"><div class="card card-body border-0 shadow-sm rounded-4 text-center py-4">No hay históricos autorizados que coincidan con esta consulta.</div></div>
+    {% endfor %}
+  </div>
+  <nav aria-label="Páginas del historial propio" class="my-4">
+    <ul class="pagination pagination-sm flex-wrap gap-1">
+      {% if pagina.has_previous %}<li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.previous_page_number %}">Anterior</a></li>{% endif %}
+      {% for numero in paginas %}
+        {% if numero == pagina.number %}<li class="page-item active"><span class="page-link" aria-current="page">{{ numero }}</span></li>
+        {% elif numero == pagina.paginator.ELLIPSIS %}<li class="page-item disabled"><span class="page-link">{{ numero }}</span></li>
+        {% else %}<li class="page-item"><a class="page-link" href="{% querystring pagina=numero %}">{{ numero }}</a></li>{% endif %}
+      {% endfor %}
+      {% if pagina.has_next %}<li class="page-item"><a class="page-link" href="{% querystring pagina=pagina.next_page_number %}">Siguiente</a></li>{% endif %}
+    </ul>
+  </nav>
+</div>
+{% endblock %}

@@ -90,6 +90,8 @@ RUTAS_JEFE = {
     "detalle_lugar_jefe",
     "jefe_crear_objeto",
     "jefe_editar_objeto",
+    "jefe_historicos_objeto",
+    "jefe_detalle_historico",
     "jefe_reportar_incidencia",
     "jefe_mis_reportes",
     "jefe_foto_reporte",
@@ -506,6 +508,16 @@ urlpatterns = [
         "jefe/objeto/<int:objeto_lugar_id>/editar/",
         jefes_inventario_views.editar_objeto_jefe,
         name="jefe_editar_objeto",
+    ),
+    path(
+        "jefe/objeto/<int:objeto_lugar_id>/historicos/",
+        jefes_views.historicos_objeto_jefe,
+        name="jefe_historicos_objeto",
+    ),
+    path(
+        "jefe/historico/<int:historico_id>/",
+        jefes_views.detalle_historico_jefe,
+        name="jefe_detalle_historico",
     ),
 
     # REPORTES INTERNOS DEL JEFE: solo lugares visibles y reportes propios.

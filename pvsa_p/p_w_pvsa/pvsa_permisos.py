@@ -6,7 +6,7 @@ Un área común nunca se administra como lugar propio.
 
 from django.db.models import Q
 
-from .models import AsignacionLugarJefe, Lugar
+from .models import AsignacionLugarJefe, HistoricoObjeto, Lugar
 
 
 def es_jefe_departamento(usuario):
@@ -64,3 +64,11 @@ def puede_editar_inventario_jefe(usuario, lugar):
         usuario=usuario,
         lugar=lugar,
     ).exists()
+
+
+def historicos_propios_jefe(usuario):
+    propios = lugares_propios_jefe(usuario)
+    return HistoricoObjeto.objects.filter(
+        objeto_del_lugar__lugar__in=propios,
+        variante_anterior__lugar_id__in=propios.values("pk"),
+    )
