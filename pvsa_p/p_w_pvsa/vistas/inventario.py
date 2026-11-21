@@ -459,9 +459,12 @@ def editar_objeto_lugar(request, objeto_lugar_id):
             ):
                 raise
             form.add_error(None, "Otra operación modificó o está guardando el inventario. No se guardaron tus cambios. Vuelve a abrir el inventario y revisa los datos.")
+            form.conflicto_version = True
             estado_respuesta = 409
         else:
             return redirect("detalle_objeto_lugar", objeto_lugar_id=objeto_lugar.id)
+    elif form.conflicto_version:
+        estado_respuesta = 409
 
     return render(
         request,

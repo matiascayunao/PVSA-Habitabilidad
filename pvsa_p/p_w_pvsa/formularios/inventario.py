@@ -1,4 +1,5 @@
 from django import forms
+from django.core import signing
 from django.forms import ModelForm
 from ..models import ObjetoLugar, HistoricoObjeto
 
@@ -185,9 +186,18 @@ class CrearHistorico(forms.ModelForm):
 
 
 class EditarObjetoLugar(forms.ModelForm):
+    SAL_VERSION = "pvsa.inventario.edicion"
+    version_inventario = forms.CharField(widget=forms.HiddenInput, required=False, max_length=4096)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["tipo_de_objeto"].required = True
+        self.conflicto_version = False
+        self._estado_original = self.instance.estado_edicion()
+        if not self.is_bound:
+            self.initial["version_inventario"] = signing.dumps(
+                self._estado_original, salt=self.SAL_VERSION, compress=True,
+            )
 
     class Meta:
         model = ObjetoLugar
@@ -236,6 +246,20 @@ class EditarObjetoLugar(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+
+        try:
+            referencia = signing.loads(
+                cleaned.get("version_inventario", ""), salt=self.SAL_VERSION,
+            )
+        except (signing.BadSignature, ValueError, TypeError):
+            referencia = None
+        if referencia != self._estado_original:
+            self.conflicto_version = True
+            raise forms.ValidationError(
+                "El formulario está desactualizado o su referencia no es válida. "
+                "No se guardaron tus cambios. Recarga los valores actuales y revísalos antes de editar."
+            )
+        self.instance._estado_original_formulario = referencia
 
         cantidad = cleaned.get("cantidad") or 0
         cantidad_mala = cleaned.get("cantidad_mala") or 0

@@ -409,6 +409,15 @@ class ObjetoLugar(models.Model):
             ),
         ]
 
+    def estado_edicion(self):
+        return {
+            "campos": {
+                campo.attname: campo.value_to_string(self)
+                for campo in self._meta.concrete_fields
+            },
+            "historico": self.historicoobjeto.order_by("-pk").values_list("pk", flat=True).first(),
+        }
+
     @classmethod
     def from_db(cls, db, field_names, values):
         instancia = super().from_db(db, field_names, values)
@@ -422,6 +431,7 @@ class ObjetoLugar(models.Model):
                 if campo.attname in self.__dict__:
                     valores[campo.attname] = self.__dict__[campo.attname]
         self._valores_cargados = valores
+        self.__dict__.pop("_estado_original_formulario", None)
 
     def refresh_from_db(self, using=None, fields=None, from_queryset=None):
         super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
@@ -445,6 +455,11 @@ class ObjetoLugar(models.Model):
             campos_actualizados = set(campos_actualizados)
             kwargs["update_fields"] = campos_actualizados
         valores = getattr(self, "_valores_cargados", {})
+        referencia = getattr(self, "_estado_original_formulario", None)
+        if referencia is not None and (
+            anterior is None or anterior.estado_edicion() != referencia
+        ):
+            raise ConflictoInventario("El formulario corresponde a una versión anterior del inventario.")
         if anterior is not None:
             for campo in self._meta.concrete_fields:
                 if campos_actualizados is not None and campo.name not in campos_actualizados and campo.attname not in campos_actualizados:

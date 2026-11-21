@@ -31,10 +31,14 @@
 
       <form method="post" novalidate>
         {% csrf_token %}
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
         {% if form.non_field_errors %}
           <div class="alert alert-danger rounded-4 shadow-sm">
             {{ form.non_field_errors }}
+            {% if form.conflicto_version %}
+              <a href="{{ request.path }}" class="alert-link">Recargar valores actuales</a>
+            {% endif %}
           </div>
         {% endif %}
 
@@ -56,7 +60,7 @@
             </div>
 
             <div class="row g-4">
-              {% for field in form %}
+              {% for field in form.visible_fields %}
                 <div class="col-12">
 
                   {% if field.name == "es_area_comun" %}
