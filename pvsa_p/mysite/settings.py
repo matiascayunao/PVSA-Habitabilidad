@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 from django.core.exceptions import ImproperlyConfigured
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -134,6 +137,36 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_URL = "signin"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "signin"
+
+
+login_protection = os.environ.get("PVSA_LOGIN_PROTECTION_ENABLED", "true" if PVSA_ENV == "production" else "false").lower()
+if login_protection not in {"true", "false"}:
+    raise ImproperlyConfigured("PVSA_LOGIN_PROTECTION_ENABLED debe ser true o false.")
+AXES_ENABLED = login_protection == "true"
+if PVSA_ENV == "production" and not AXES_ENABLED:
+    raise ImproperlyConfigured("La protección de login debe estar habilitada en producción.")
+try:
+    AXES_FAILURE_LIMIT = int(os.environ.get("PVSA_LOGIN_FAILURE_LIMIT", "5"))
+    login_cooloff = int(os.environ.get("PVSA_LOGIN_COOLOFF_MINUTES", "15"))
+except ValueError as error:
+    raise ImproperlyConfigured("Los límites de login deben ser enteros positivos.") from error
+if AXES_FAILURE_LIMIT <= 0 or login_cooloff <= 0:
+    raise ImproperlyConfigured("Los límites de login deben ser enteros positivos.")
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+AXES_HANDLER = "p_w_pvsa.seguridad_login.IntentosLoginHandler"
+AXES_COOLOFF_TIME = timedelta(minutes=login_cooloff)
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_IPWARE_META_PRECEDENCE_ORDER = ("REMOTE_ADDR",)
+AXES_RESET_ON_SUCCESS = True
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+AXES_DISABLE_ACCESS_LOG = True
+AXES_ENABLE_ACCESS_FAILURE_LOG = False
+AXES_ENABLE_ADMIN = False
+AXES_LOCKOUT_CALLABLE = "p_w_pvsa.seguridad_login.respuesta_bloqueo"
+AXES_ENABLE_RETRY_AFTER_HEADER = True
 
 
 if PVSA_ENV == "production":
