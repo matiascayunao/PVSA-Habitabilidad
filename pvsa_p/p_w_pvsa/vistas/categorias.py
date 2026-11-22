@@ -38,6 +38,7 @@ def detalle_tipo_lugar(request, tipo_lugar_id):
 
     if request.method == "POST":
         nuevos_ids = []
+        configuracion = {}
         invalido = False
         for valor in request.POST.getlist("tipicos"):
             try:
@@ -49,21 +50,47 @@ def detalle_tipo_lugar(request, tipo_lugar_id):
                 break
             if numero not in nuevos_ids:
                 nuevos_ids.append(numero)
+            configuracion[numero] = {}
+            for campo in ("importancia", "orden"):
+                valor = request.POST.get(f"{campo}_{numero}")
+                if valor is not None:
+                    try:
+                        valor = int(valor)
+                        if (campo == "importancia" and valor not in (1, 2, 3)) or (campo == "orden" and not 0 <= valor <= 32767):
+                            raise ValueError
+                    except (TypeError, ValueError):
+                        invalido = True
+                        break
+                    configuracion[numero][campo] = valor
+            if invalido:
+                break
         if not invalido:
             validos = set(TipoObjeto.objects.filter(pk__in=nuevos_ids).values_list("pk", flat=True))
             invalido = validos != set(nuevos_ids)
         if invalido:
-            messages.error(request, "Selecciona únicamente variantes existentes. No se modificaron los objetos habituales.")
+            messages.error(request, "Selecciona variantes existentes, una importancia válida y un orden entre 0 y 32767. No se modificaron los objetos habituales.")
         else:
             with transaction.atomic():
-                TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo).delete()
-                TipoLugarObjetoTipico.objects.bulk_create([
-                    TipoLugarObjetoTipico(
-                        tipo_lugar=tipo, tipo_objeto_id=tipo_id,
-                        activo=True, orden=indice,
-                    )
-                    for indice, tipo_id in enumerate(nuevos_ids)
-                ])
+                existentes = {
+                    relacion.tipo_objeto_id: relacion
+                    for relacion in TipoLugarObjetoTipico.objects.select_for_update().filter(tipo_lugar=tipo)
+                }
+                TipoLugarObjetoTipico.objects.filter(tipo_lugar=tipo).exclude(tipo_objeto_id__in=nuevos_ids).delete()
+                orden = max((configuracion[identificador].get("orden", relacion.orden) for identificador, relacion in existentes.items() if identificador in nuevos_ids), default=-1) + 1
+                for tipo_id in nuevos_ids:
+                    relacion = existentes.get(tipo_id)
+                    if relacion is None:
+                        TipoLugarObjetoTipico.objects.create(
+                            tipo_lugar=tipo, tipo_objeto_id=tipo_id, activo=True,
+                            orden=configuracion[tipo_id].get("orden", min(orden, 32767)),
+                            importancia=configuracion[tipo_id].get("importancia", 1),
+                        )
+                        orden += 1
+                    else:
+                        relacion.activo = True
+                        for campo, valor in configuracion[tipo_id].items():
+                            setattr(relacion, campo, valor)
+                        relacion.save(update_fields=["activo", *configuracion[tipo_id]])
             return redirect("detalle_tipo_lugar", tipo_lugar_id=tipo.id)
 
     lugares = Lugar.objects.filter(lugar_tipo_lugar=tipo).order_by("nombre_del_lugar")
@@ -91,6 +118,11 @@ def detalle_tipo_lugar(request, tipo_lugar_id):
             "material",
         )
     )
+    configuraciones = {relacion.tipo_objeto_id: relacion for relacion in tipo.tipicos.all()}
+    for variante in tipos_objeto:
+        relacion = configuraciones.get(variante.pk)
+        variante.tipico_importancia = relacion.importancia if relacion else 1
+        variante.tipico_orden = relacion.orden if relacion else 0
 
     return render(
         request,

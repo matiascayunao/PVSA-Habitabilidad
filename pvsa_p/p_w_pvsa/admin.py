@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.admin.forms import AdminAuthenticationForm
+from django.core.exceptions import ValidationError
 
 from .models import (
     Sector,
@@ -47,6 +49,24 @@ from .administracion.inventario import (
 from .administracion.qr import (
     AccesoQRAdmin,
 )
+
+class AutenticacionAdminTecnico(AdminAuthenticationForm):
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if not user.is_superuser:
+            raise ValidationError(
+                self.error_messages["invalid_login"],
+                code="invalid_login",
+                params={"username": self.username_field.verbose_name},
+            )
+
+
+def _acceso_admin_tecnico(request):
+    return request.user.is_active and request.user.is_superuser
+
+
+admin.site.has_permission = _acceso_admin_tecnico
+admin.site.login_form = AutenticacionAdminTecnico
 
 admin.site.site_header = "Administración PVSA"
 

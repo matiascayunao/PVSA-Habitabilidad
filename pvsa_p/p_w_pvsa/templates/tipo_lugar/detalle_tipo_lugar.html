@@ -253,7 +253,7 @@
                 class="col-12 col-md-6 col-xl-4 tipico-option"
                 data-search="{{ t.objeto.nombre_del_objeto|lower|escape }} {{ t.objeto.objeto_categoria.nombre_de_categoria|lower|escape }} {{ t.marca|default:''|lower|escape }} {{ t.material|default:''|lower|escape }}"
               >
-                <label class="tipico-card">
+                <label class="tipico-card h-auto">
                   <input
                     class="form-check-input tipico-checkbox"
                     type="checkbox"
@@ -274,6 +274,20 @@
                     </span>
                   </span>
                 </label>
+                <div class="row g-2 mt-1">
+                  <div class="col-6">
+                    <label for="importancia-tipico-{{ t.pk }}" class="form-label small">Importancia</label>
+                    <select id="importancia-tipico-{{ t.pk }}" name="importancia_{{ t.pk }}" class="form-select form-select-sm">
+                      <option value="1"{% if t.tipico_importancia == 1 %} selected{% endif %}>Baja</option>
+                      <option value="2"{% if t.tipico_importancia == 2 %} selected{% endif %}>Media</option>
+                      <option value="3"{% if t.tipico_importancia == 3 %} selected{% endif %}>Alta</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label for="orden-tipico-{{ t.pk }}" class="form-label small">Orden</label>
+                    <input id="orden-tipico-{{ t.pk }}" name="orden_{{ t.pk }}" type="number" min="0" max="32767" value="{{ t.tipico_orden }}" class="form-control form-control-sm">
+                  </div>
+                </div>
               </div>
             {% endfor %}
           </div>

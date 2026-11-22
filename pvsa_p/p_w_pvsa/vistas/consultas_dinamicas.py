@@ -139,6 +139,23 @@ def ajax_filtros_dependientes(request):
     piso_ids = qs.values_list("lugar__piso_id", flat=True).distinct()
     tipo_lugar_ids = qs.values_list("lugar__lugar_tipo_lugar_id", flat=True).distinct()
     lugar_ids = qs.values_list("lugar_id", flat=True).distinct()
+    if request.GET.get("lugares_fisicos") == "1":
+        lugares_fisicos = Lugar.objects.all()
+        for campo, valor in (
+            ("piso__ubicacion__sector_id", sector_id),
+            ("piso__ubicacion_id", ubicacion_id),
+            ("piso_id", piso_id),
+        ):
+            if valor:
+                lugares_fisicos = lugares_fisicos.filter(**{campo: valor})
+        tipo_lugar_ids = lugares_fisicos.values_list("lugar_tipo_lugar_id", flat=True).distinct()
+        if tipo_lugar_id:
+            lugares_fisicos = lugares_fisicos.filter(lugar_tipo_lugar_id=tipo_lugar_id)
+        if lugar_id:
+            lugares_fisicos = lugares_fisicos.filter(pk=lugar_id)
+        ubicacion_ids = lugares_fisicos.values_list("piso__ubicacion_id", flat=True).distinct()
+        piso_ids = lugares_fisicos.values_list("piso_id", flat=True).distinct()
+        lugar_ids = lugares_fisicos.values_list("pk", flat=True)
     categoria_ids = qs.values_list("tipo_de_objeto__objeto__objeto_categoria_id", flat=True).distinct()
     objeto_ids = qs.values_list("tipo_de_objeto__objeto_id", flat=True).distinct()
     tipo_objeto_ids = qs.values_list("tipo_de_objeto_id", flat=True).distinct()

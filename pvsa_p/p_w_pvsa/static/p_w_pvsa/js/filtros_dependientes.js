@@ -68,6 +68,7 @@
 
   function buildParams() {
     const params = new URLSearchParams();
+    if (root.dataset.lugaresFisicos === "1") params.set("lugares_fisicos", "1");
 
     const tipoValue = valueOf(selects.tipoObjeto) || valueOf(selects.tipo);
 

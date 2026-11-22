@@ -1,10 +1,11 @@
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import render
 from django.http import HttpResponseBadRequest
 from ..models import Sector
 from ..models import Ubicacion
 from ..models import Piso
 from ..models import TipoLugar
+from ..models import Lugar
 from ..models import CategoriaObjeto
 from ..models import Objeto
 from ..models import TipoObjeto
@@ -80,6 +81,33 @@ def resumen_general(request):
     estado = request.GET.get("estado") or None
     marca = request.GET.get("marca") or None
     material = request.GET.get("material") or None
+
+    lugares_qs = Lugar.objects.all()
+    for campo, valor in (
+        ("piso__ubicacion__sector_id", sector_id),
+        ("piso__ubicacion_id", ubicacion_id),
+        ("piso_id", piso_id),
+    ):
+        if valor:
+            lugares_qs = lugares_qs.filter(**{campo: valor})
+
+    tipos_lugar = TipoLugar.objects.filter(
+        pk__in=lugares_qs.values("lugar_tipo_lugar_id")
+    ).order_by("tipo_de_lugar")
+
+    if tipo_lugar_id:
+        lugares_qs = lugares_qs.filter(lugar_tipo_lugar_id=tipo_lugar_id)
+
+    resumen_tipos_lugar = [
+        {
+            "id": fila["lugar_tipo_lugar_id"],
+            "nombre": fila["lugar_tipo_lugar__tipo_de_lugar"],
+            "cantidad": fila["cantidad"],
+        }
+        for fila in lugares_qs.values(
+            "lugar_tipo_lugar_id", "lugar_tipo_lugar__tipo_de_lugar"
+        ).annotate(cantidad=Count("pk")).order_by("lugar_tipo_lugar__tipo_de_lugar")
+    ]
 
     base_qs = ObjetoLugar.objects.select_related(
         "lugar",
@@ -238,8 +266,6 @@ def resumen_general(request):
         "piso"
     )
 
-    tipos_lugar = TipoLugar.objects.order_by("tipo_de_lugar")
-
     categorias = CategoriaObjeto.objects.order_by("nombre_de_categoria")
 
     objetos_catalogo = Objeto.objects.select_related("objeto_categoria").order_by(
@@ -274,6 +300,7 @@ def resumen_general(request):
         "resumen_sector": resumen_sector,
         "resumen_ubic": resumen_ubic,
         "resumen_objetos": resumen_objetos,
+        "resumen_tipos_lugar": resumen_tipos_lugar,
 
         "sectores": sectores,
         "ubicaciones": ubicaciones,
