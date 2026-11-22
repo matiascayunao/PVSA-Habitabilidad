@@ -3,6 +3,7 @@ from django import forms
 from django.contrib import admin
 
 from ..models import HistoricoObjeto, ObjetoLugar
+from . import FormsetAnidadoSeguro
 
 
 def texto_importancia(valor):
@@ -14,6 +15,7 @@ def texto_importancia(valor):
 
 
 class HistoricoObjetoInline(nested_admin.NestedTabularInline):
+    formset = FormsetAnidadoSeguro
     model = HistoricoObjeto
     extra = 0
     can_delete = False
@@ -35,6 +37,7 @@ class HistoricoObjetoInline(nested_admin.NestedTabularInline):
 
 
 class ObjetoLugarInline(nested_admin.NestedTabularInline):
+    formset = FormsetAnidadoSeguro
     model = ObjetoLugar
     extra = 0
     inlines = [
@@ -162,6 +165,14 @@ class ObjetoLugarAdmin(nested_admin.NestedModelAdmin):
         ),
     )
     date_hierarchy = "fecha"
+
+    def get_deleted_objects(self, objs, request):
+        deleted_objects, model_count, perms_needed, protected = super().get_deleted_objects(objs, request)
+        protected.extend(
+            f"Inventario con históricos asociados: {obj}"
+            for obj in objs if obj.historicoobjeto.exists()
+        )
+        return deleted_objects, model_count, perms_needed, protected
 
     @admin.display(description="Objeto")
     def objeto_admin(self, obj):

@@ -2,6 +2,9 @@ from copy import copy
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models.deletion import ProtectedError
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.utils import timezone
 
 from .estructura import Lugar
@@ -10,6 +13,12 @@ from .catalogos import TipoObjeto
 
 class ConflictoInventario(ValidationError):
     pass
+
+
+@receiver(pre_delete, sender="p_w_pvsa.ObjetoLugar")
+def proteger_inventario_con_historicos(sender, instance, using, **kwargs):
+    if instance.historicoobjeto.using(using).exists():
+        raise ProtectedError("No se puede eliminar un inventario con históricos asociados.", [instance])
 
 
 class ObjetoLugar(models.Model):
@@ -492,7 +501,7 @@ class ObjetoLugar(models.Model):
         if anterior:
 
             campos_historicos = (
-                "tipo_de_objeto_id", "cantidad", "detalle", "importancia",
+                "lugar_id", "tipo_de_objeto_id", "cantidad", "detalle", "importancia",
                 "cantidad_mala", "cantidad_pendiente", "minimo_operativo",
             )
             campos_actualizados = kwargs.get("update_fields")
@@ -726,6 +735,7 @@ class HistoricoObjeto(models.Model):
                     pk=self.objeto_del_lugar_id,
                 )
                 self.variante_anterior = self.capturar_variante(inventario)
+                self.variante_anterior.pop("lugar_id", None)
         else:
             anterior = type(self).objects.get(pk=self.pk)
             if self.variante_anterior != anterior.variante_anterior:

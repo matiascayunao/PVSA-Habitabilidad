@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
@@ -15,7 +15,8 @@ def _confirm_delete(request, obj, cancel_url_name, cancel_kwargs, success_url_na
 
     if request.method == "POST":
         try:
-            obj.delete()
+            with transaction.atomic():
+                obj.delete()
             messages.success(request, "Registro eliminado correctamente.")
             return redirect(success_url_name)
 

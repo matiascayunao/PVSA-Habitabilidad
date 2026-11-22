@@ -9,6 +9,7 @@ from django.utils.html import format_html
 
 from ..models import Lugar, Piso, Ubicacion
 from .inventario import ObjetoLugarInline
+from . import FormsetAnidadoSeguro
 
 
 class UnicidadAdminMixin:
@@ -30,6 +31,7 @@ class UnicidadAdminMixin:
 
 
 class LugarInline(nested_admin.NestedStackedInline):
+    formset = FormsetAnidadoSeguro
     model = Lugar
     extra = 0
     inlines = [
@@ -55,6 +57,7 @@ class LugarInline(nested_admin.NestedStackedInline):
 
 
 class PisoInline(nested_admin.NestedStackedInline):
+    formset = FormsetAnidadoSeguro
     model = Piso
     extra = 0
     inlines = [
@@ -63,6 +66,7 @@ class PisoInline(nested_admin.NestedStackedInline):
 
 
 class UbicacionInline(nested_admin.NestedStackedInline):
+    formset = FormsetAnidadoSeguro
     model = Ubicacion
     extra = 0
     inlines = [
